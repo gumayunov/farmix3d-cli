@@ -26,6 +26,14 @@ type PlateInfo struct {
 	Objects   []PlateObject `json:"objects"`
 }
 
+type GroupedObject struct {
+	Name       string          `json:"name"`
+	Type       string          `json:"type"`
+	Count      int             `json:"count"`
+	Components []ComponentInfo `json:"components,omitempty"`
+	ObjectIDs  []int           `json:"object_ids"`
+}
+
 type Parser3MF struct {
 	Plates []PlateInfo `json:"plates"`
 }
@@ -78,14 +86,17 @@ type Model3D struct {
 }
 
 type Plate struct {
-	PlaterID   int    `xml:"plater_id,attr"`
-	PlaterName string `xml:"plater_name,attr"`
+	PlaterID   int             `xml:"plater_id,attr"`
+	PlaterName string          `xml:"plater_name,attr"`
+	Metadata   []MetadataEntry `xml:"metadata"`
+	Instances  []ModelInstance `xml:"model_instance"`
 }
 
 type ModelInstance struct {
-	ObjectID   int `xml:"object_id,attr"`
-	InstanceID int `xml:"instance_id,attr"`
-	IdentifyID int `xml:"identify_id,attr"`
+	ObjectID   int             `xml:"object_id,attr"`
+	InstanceID int             `xml:"instance_id,attr"`
+	IdentifyID int             `xml:"identify_id,attr"`
+	Metadata   []MetadataEntry `xml:"metadata"`
 }
 
 type MetadataEntry struct {

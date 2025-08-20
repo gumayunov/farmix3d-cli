@@ -24,27 +24,28 @@ func Parse3MF(filePath string) (*Parser3MF, error) {
 
 	result := &Parser3MF{}
 
-	plateMap := make(map[int]*PlateInfo)
-	for _, plate := range settings.Plates {
-		plateMap[plate.PlaterID] = &PlateInfo{
-			PlateID:   plate.PlaterID,
-			PlateName: plate.PlaterName,
-			Objects:   []PlateObject{},
+	plateMap, instanceToPlateMap := parsePlates(settings.Plates)
+
+	objectNameMap := make(map[int]string)
+	objectTypeMap := make(map[int]string)
+	objectComponentsMap := make(map[int][]ComponentInfo)
+	
+	for _, obj := range settings.Objects {
+		objectNameMap[obj.ID] = getObjectNameFromParts(obj)
+		
+		if isAssemblyObject(obj) {
+			objectTypeMap[obj.ID] = "assembly"
+			objectComponentsMap[obj.ID] = getPartComponents(obj)
+		} else {
+			objectTypeMap[obj.ID] = "model"
 		}
 	}
-
-	objectNameMap := buildObjectMetadataMap(settings.Objects)
 
 	partNameMap := make(map[int]string)
 	partFileMap := make(map[int]string)
 	for _, part := range settings.Parts {
 		partNameMap[part.ID] = part.Name
 		partFileMap[part.ID] = part.SourceFile
-	}
-
-	instanceToPlateMap := make(map[int]int)
-	for _, instance := range settings.Instances {
-		instanceToPlateMap[instance.ObjectID] = instance.InstanceID
 	}
 
 	modelObjectMap := make(map[int]*ModelObject)
@@ -64,22 +65,40 @@ func Parse3MF(filePath string) (*Parser3MF, error) {
 			printable = *buildItem.Printable
 		}
 
+		name := objectNameMap[buildItem.ObjectID]
+		if name == "" {
+			name = getObjectName(buildItem.ObjectID, objectNameMap, partNameMap, modelObj)
+		}
+		
+		objType := objectTypeMap[buildItem.ObjectID]
+		if objType == "" {
+			if modelObj.Mesh != nil {
+				objType = "mesh"
+			} else if modelObj.Components != nil {
+				objType = "assembly"
+			} else {
+				objType = "model"
+			}
+		}
+		
 		plateObject := PlateObject{
 			ID:        buildItem.ObjectID,
-			Name:      getObjectName(buildItem.ObjectID, objectNameMap, partNameMap, modelObj),
+			Name:      name,
+			Type:      objType,
 			Position:  ParseTransform(buildItem.Transform),
 			Printable: printable,
 		}
 
-		if modelObj.Mesh != nil {
-			plateObject.Type = "mesh"
-		} else if modelObj.Components != nil {
-			plateObject.Type = "assembly"
-			components, err := processAssemblyComponents(extractDir, modelObj.Components, partNameMap, partFileMap)
-			if err != nil {
-				return nil, fmt.Errorf("failed to process assembly components: %w", err)
+		if objType == "assembly" {
+			if components, exists := objectComponentsMap[buildItem.ObjectID]; exists {
+				plateObject.Components = components
+			} else if modelObj.Components != nil {
+				components, err := processAssemblyComponents(extractDir, modelObj.Components, partNameMap, partFileMap)
+				if err != nil {
+					return nil, fmt.Errorf("failed to process assembly components: %w", err)
+				}
+				plateObject.Components = components
 			}
-			plateObject.Components = components
 		}
 
 		plateID := findPlateForObject(buildItem.ObjectID, instanceToPlateMap, plateMap)

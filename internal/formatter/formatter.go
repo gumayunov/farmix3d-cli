@@ -21,24 +21,28 @@ func FormatAsText(data *parser.Parser3MF, writer io.Writer) error {
 
 	for _, plate := range data.Plates {
 		fmt.Fprintf(writer, "Plate %d: %s\n", plate.PlateID, plate.PlateName)
-		fmt.Fprintf(writer, "Objects: %d\n\n", len(plate.Objects))
 
 		if len(plate.Objects) == 0 {
-			fmt.Fprintf(writer, "  No objects on this plate.\n\n")
+			fmt.Fprintf(writer, "  No objects on this plate.\n")
 			continue
 		}
 
-		for _, obj := range plate.Objects {
-			fmt.Fprintf(writer, "  Object %d: %s (%s)\n", obj.ID, obj.Name, obj.Type)
+		groups := parser.GroupObjectsByName(plate.Objects)
+		for _, group := range groups {
+			if group.Type == "assembly" {
+				fmt.Fprintf(writer, "  %d x %s (assembly)\n", group.Count, group.Name)
+			} else {
+				fmt.Fprintf(writer, "  %d x %s\n", group.Count, group.Name)
+			}
 
-			if obj.Type == "assembly" && len(obj.Components) > 0 {
+			if group.Type == "assembly" && len(group.Components) > 0 {
 				fmt.Fprintf(writer, "    Components:\n")
-				for _, comp := range obj.Components {
+				for _, comp := range group.Components {
 					fmt.Fprintf(writer, "      - %s (ID: %d, Source: %s)\n", comp.Name, comp.ID, comp.SourceFile)
 				}
 			}
-			fmt.Fprintf(writer, "\n")
 		}
+		fmt.Fprintf(writer, "\n")
 	}
 
 	return nil
@@ -49,7 +53,7 @@ func FormatAsCSV(data *parser.Parser3MF, writer io.Writer) error {
 	defer csvWriter.Flush()
 
 	headers := []string{
-		"PlateID", "PlateName", "ObjectID", "ObjectName", "ObjectType",
+		"PlateID", "PlateName", "ObjectName", "ObjectType", "Count",
 		"ComponentCount", "ComponentNames", "ComponentFiles",
 	}
 
@@ -62,7 +66,7 @@ func FormatAsCSV(data *parser.Parser3MF, writer io.Writer) error {
 			record := []string{
 				strconv.Itoa(plate.PlateID),
 				plate.PlateName,
-				"", "", "",
+				"", "", "0",
 				"0", "", "",
 			}
 			if err := csvWriter.Write(record); err != nil {
@@ -71,9 +75,10 @@ func FormatAsCSV(data *parser.Parser3MF, writer io.Writer) error {
 			continue
 		}
 
-		for _, obj := range plate.Objects {
+		groups := parser.GroupObjectsByName(plate.Objects)
+		for _, group := range groups {
 			var componentNames, componentFiles []string
-			for _, comp := range obj.Components {
+			for _, comp := range group.Components {
 				componentNames = append(componentNames, comp.Name)
 				componentFiles = append(componentFiles, comp.SourceFile)
 			}
@@ -81,10 +86,10 @@ func FormatAsCSV(data *parser.Parser3MF, writer io.Writer) error {
 			record := []string{
 				strconv.Itoa(plate.PlateID),
 				plate.PlateName,
-				strconv.Itoa(obj.ID),
-				obj.Name,
-				obj.Type,
-				strconv.Itoa(len(obj.Components)),
+				group.Name,
+				group.Type,
+				strconv.Itoa(group.Count),
+				strconv.Itoa(len(group.Components)),
 				strings.Join(componentNames, ";"),
 				strings.Join(componentFiles, ";"),
 			}
