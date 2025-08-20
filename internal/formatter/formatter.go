@@ -4,12 +4,23 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 
 	"3mfanalyzer/internal/parser"
 )
+
+// cleanMaterialName удаляет часть в скобках из названия материала
+// Например: "Eryone ASA-GF(opengrid-9x9.3mf)" -> "Eryone ASA-GF"
+func cleanMaterialName(material string) string {
+	// Удаляем содержимое в скобках в конце строки
+	re := regexp.MustCompile(`\([^)]*\)$`)
+	cleaned := re.ReplaceAllString(material, "")
+	// Убираем лишние пробелы
+	return strings.TrimSpace(cleaned)
+}
 
 func FormatAsText(data *parser.Parser3MF, writer io.Writer) error {
 	fmt.Fprintf(writer, "3MF File Analysis\n")
@@ -30,10 +41,11 @@ func FormatAsText(data *parser.Parser3MF, writer io.Writer) error {
 
 		groups := parser.GroupObjectsByName(plate.Objects)
 		for _, group := range groups {
+			cleanMaterial := cleanMaterialName(group.Material)
 			if group.Type == "assembly" {
-				fmt.Fprintf(writer, "  %d x %s (%s) (assembly)\n", group.Count, group.Name, group.Material)
+				fmt.Fprintf(writer, "  %d x %s; %s (assembly)\n", group.Count, group.Name, cleanMaterial)
 			} else {
-				fmt.Fprintf(writer, "  %d x %s (%s)\n", group.Count, group.Name, group.Material)
+				fmt.Fprintf(writer, "  %d x %s; %s\n", group.Count, group.Name, cleanMaterial)
 			}
 
 			if group.Type == "assembly" && len(group.Components) > 0 {
@@ -51,7 +63,8 @@ func FormatAsText(data *parser.Parser3MF, writer io.Writer) error {
 	for _, plate := range data.Plates {
 		for _, obj := range plate.Objects {
 			if obj.Material != "" {
-				materialsSet[obj.Material] = true
+				cleanMaterial := cleanMaterialName(obj.Material)
+				materialsSet[cleanMaterial] = true
 			}
 		}
 	}
@@ -110,12 +123,13 @@ func FormatAsCSV(data *parser.Parser3MF, writer io.Writer) error {
 				componentFiles = append(componentFiles, comp.SourceFile)
 			}
 
+			cleanMaterial := cleanMaterialName(group.Material)
 			record := []string{
 				strconv.Itoa(plate.PlateID),
 				plate.PlateName,
 				group.Name,
 				group.Type,
-				group.Material,
+				cleanMaterial,
 				strconv.Itoa(group.Count),
 				strconv.Itoa(len(group.Components)),
 				strings.Join(componentNames, ";"),
