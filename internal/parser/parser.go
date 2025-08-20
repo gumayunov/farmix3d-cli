@@ -25,9 +25,11 @@ func Parse3MF(filePath string) (*Parser3MF, error) {
 	result := &Parser3MF{}
 
 	plateMap, instanceToPlateMap := parsePlates(settings.Plates)
+	materialMap := parseFilamentSettings(extractDir)
 
 	objectNameMap := make(map[int]string)
 	objectTypeMap := make(map[int]string)
+	objectMaterialMap := make(map[int]string)
 	objectComponentsMap := make(map[int][]ComponentInfo)
 	
 	for _, obj := range settings.Objects {
@@ -38,6 +40,14 @@ func Parse3MF(filePath string) (*Parser3MF, error) {
 			objectComponentsMap[obj.ID] = getPartComponents(obj)
 		} else {
 			objectTypeMap[obj.ID] = "model"
+		}
+		
+		// Extract material information
+		extruderID := extractExtruderID(obj)
+		if materialName, exists := materialMap[extruderID]; exists {
+			objectMaterialMap[obj.ID] = materialName
+		} else {
+			objectMaterialMap[obj.ID] = fmt.Sprintf("Extruder %d", extruderID)
 		}
 	}
 
@@ -81,10 +91,13 @@ func Parse3MF(filePath string) (*Parser3MF, error) {
 			}
 		}
 		
+		material := objectMaterialMap[buildItem.ObjectID]
+		
 		plateObject := PlateObject{
 			ID:        buildItem.ObjectID,
 			Name:      name,
 			Type:      objType,
+			Material:  material,
 			Position:  ParseTransform(buildItem.Transform),
 			Printable: printable,
 		}

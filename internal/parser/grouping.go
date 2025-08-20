@@ -4,7 +4,7 @@ func GroupObjectsByName(objects []PlateObject) map[string]GroupedObject {
 	groups := make(map[string]GroupedObject)
 
 	for _, obj := range objects {
-		key := obj.Name + "|" + obj.Type // Группируем по имени и типу
+		key := obj.Name + "|" + obj.Type + "|" + obj.Material // Группируем по имени, типу и материалу
 		
 		if existing, exists := groups[key]; exists {
 			// Увеличиваем счетчик и добавляем ID
@@ -16,6 +16,7 @@ func GroupObjectsByName(objects []PlateObject) map[string]GroupedObject {
 			groups[key] = GroupedObject{
 				Name:       obj.Name,
 				Type:       obj.Type,
+				Material:   obj.Material,
 				Count:      1,
 				Components: obj.Components,
 				ObjectIDs:  []int{obj.ID},

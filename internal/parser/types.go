@@ -15,6 +15,7 @@ type PlateObject struct {
 	ID         int             `json:"id"`
 	Name       string          `json:"name"`
 	Type       string          `json:"type"`
+	Material   string          `json:"material,omitempty"`
 	Position   Transform3D     `json:"position"`
 	Printable  bool            `json:"printable"`
 	Components []ComponentInfo `json:"components,omitempty"`
@@ -29,6 +30,7 @@ type PlateInfo struct {
 type GroupedObject struct {
 	Name       string          `json:"name"`
 	Type       string          `json:"type"`
+	Material   string          `json:"material,omitempty"`
 	Count      int             `json:"count"`
 	Components []ComponentInfo `json:"components,omitempty"`
 	ObjectIDs  []int           `json:"object_ids"`
@@ -116,6 +118,10 @@ type PartMeta struct {
 	Name       string          `xml:"name,attr"`
 	SourceFile string          `xml:"source_file,attr"`
 	Metadata   []MetadataEntry `xml:"metadata"`
+}
+
+type FilamentSettings struct {
+	Name string `json:"name"`
 }
 
 type ModelSettings struct {

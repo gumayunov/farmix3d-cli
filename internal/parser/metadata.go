@@ -1,7 +1,10 @@
 package parser
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strconv"
 )
 
@@ -133,4 +136,79 @@ func parsePlates(plates []Plate) (map[int]*PlateInfo, map[int]int) {
 	}
 	
 	return plateMap, objectToPlateMap
+}
+
+func parseFilamentSettings(extractDir string) map[int]string {
+	materialMap := make(map[int]string)
+	
+	metadataDir := filepath.Join(extractDir, "Metadata")
+	if _, err := os.Stat(metadataDir); os.IsNotExist(err) {
+		return materialMap
+	}
+	
+	entries, err := os.ReadDir(metadataDir)
+	if err != nil {
+		return materialMap
+	}
+	
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		
+		name := entry.Name()
+		if filepath.Ext(name) == ".config" && len(name) > 17 && name[:17] == "filament_settings" {
+			// Extract extruder number from filename like "filament_settings_1.config"
+			extruderStr := name[18 : len(name)-7] // Remove "filament_settings_" and ".config"
+			extruderNum, err := strconv.Atoi(extruderStr)
+			if err != nil {
+				continue
+			}
+			
+			filePath := filepath.Join(metadataDir, name)
+			materialName := parseFilamentConfig(filePath)
+			if materialName != "" {
+				materialMap[extruderNum] = materialName
+				
+				// Если это первый найденный материал, то используем его как fallback для всех экструдеров
+				if len(materialMap) == 1 {
+					for i := 1; i <= 10; i++ { // Предполагаем максимум 10 экструдеров
+						if _, exists := materialMap[i]; !exists {
+							materialMap[i] = materialName
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	return materialMap
+}
+
+func parseFilamentConfig(filePath string) string {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return ""
+	}
+	
+	var settings FilamentSettings
+	if err := json.Unmarshal(data, &settings); err != nil {
+		return ""
+	}
+	
+	return settings.Name
+}
+
+func extractExtruderID(obj ObjectMeta) int {
+	extruderStr := extractMetadataValue(obj.Metadata, "extruder")
+	if extruderStr == "" {
+		return 1 // Default to extruder 1
+	}
+	
+	extruderID, err := strconv.Atoi(extruderStr)
+	if err != nil {
+		return 1
+	}
+	
+	return extruderID
 }

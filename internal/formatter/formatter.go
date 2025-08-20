@@ -30,9 +30,9 @@ func FormatAsText(data *parser.Parser3MF, writer io.Writer) error {
 		groups := parser.GroupObjectsByName(plate.Objects)
 		for _, group := range groups {
 			if group.Type == "assembly" {
-				fmt.Fprintf(writer, "  %d x %s (assembly)\n", group.Count, group.Name)
+				fmt.Fprintf(writer, "  %d x %s (%s) (assembly)\n", group.Count, group.Name, group.Material)
 			} else {
-				fmt.Fprintf(writer, "  %d x %s\n", group.Count, group.Name)
+				fmt.Fprintf(writer, "  %d x %s (%s)\n", group.Count, group.Name, group.Material)
 			}
 
 			if group.Type == "assembly" && len(group.Components) > 0 {
@@ -53,7 +53,7 @@ func FormatAsCSV(data *parser.Parser3MF, writer io.Writer) error {
 	defer csvWriter.Flush()
 
 	headers := []string{
-		"PlateID", "PlateName", "ObjectName", "ObjectType", "Count",
+		"PlateID", "PlateName", "ObjectName", "ObjectType", "Material", "Count",
 		"ComponentCount", "ComponentNames", "ComponentFiles",
 	}
 
@@ -66,7 +66,7 @@ func FormatAsCSV(data *parser.Parser3MF, writer io.Writer) error {
 			record := []string{
 				strconv.Itoa(plate.PlateID),
 				plate.PlateName,
-				"", "", "0",
+				"", "", "", "0",
 				"0", "", "",
 			}
 			if err := csvWriter.Write(record); err != nil {
@@ -88,6 +88,7 @@ func FormatAsCSV(data *parser.Parser3MF, writer io.Writer) error {
 				plate.PlateName,
 				group.Name,
 				group.Type,
+				group.Material,
 				strconv.Itoa(group.Count),
 				strconv.Itoa(len(group.Components)),
 				strings.Join(componentNames, ";"),
