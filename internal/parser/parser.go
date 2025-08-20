@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 )
 
@@ -123,6 +124,11 @@ func Parse3MF(filePath string) (*Parser3MF, error) {
 	for _, plate := range plateMap {
 		result.Plates = append(result.Plates, *plate)
 	}
+
+	// Сортируем столы по PlateID в порядке возрастания
+	sort.Slice(result.Plates, func(i, j int) bool {
+		return result.Plates[i].PlateID < result.Plates[j].PlateID
+	})
 
 	return result, nil
 }

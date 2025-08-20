@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -43,6 +44,32 @@ func FormatAsText(data *parser.Parser3MF, writer io.Writer) error {
 			}
 		}
 		fmt.Fprintf(writer, "\n")
+	}
+
+	// Собираем список уникальных материалов
+	materialsSet := make(map[string]bool)
+	for _, plate := range data.Plates {
+		for _, obj := range plate.Objects {
+			if obj.Material != "" {
+				materialsSet[obj.Material] = true
+			}
+		}
+	}
+
+	// Преобразуем в отсортированный список
+	var materials []string
+	for material := range materialsSet {
+		materials = append(materials, material)
+	}
+	sort.Strings(materials)
+
+	// Выводим список материалов
+	if len(materials) > 0 {
+		fmt.Fprintf(writer, "Materials Used:\n")
+		fmt.Fprintf(writer, "===============\n")
+		for _, material := range materials {
+			fmt.Fprintf(writer, "- %s\n", material)
+		}
 	}
 
 	return nil
