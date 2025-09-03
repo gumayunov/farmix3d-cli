@@ -33,14 +33,16 @@ func isAssemblyObject(obj ObjectMeta) bool {
 }
 
 func getObjectNameFromParts(obj ObjectMeta) string {
+	// First try to get the object-level name
+	if name := extractMetadataValue(obj.Metadata, "name"); name != "" {
+		return name
+	}
+	
+	// If single part and no object name, try part name (for simple objects)
 	if len(obj.Parts) == 1 {
 		if name := extractMetadataValue(obj.Parts[0].Metadata, "name"); name != "" {
 			return name
 		}
-	}
-	
-	if name := extractMetadataValue(obj.Metadata, "name"); name != "" {
-		return name
 	}
 	
 	return fmt.Sprintf("Object_%d", obj.ID)
