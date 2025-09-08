@@ -9,6 +9,7 @@ require (
 
 require (
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
+	github.com/go-pdf/fpdf v0.9.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/hschendel/stl v1.0.4 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
