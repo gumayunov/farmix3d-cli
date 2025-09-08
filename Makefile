@@ -1,4 +1,4 @@
-.PHONY: build clean test run fmt vet
+.PHONY: build clean test run slice volume fmt vet
 
 BINARY_NAME=3mfanalyzer
 BUILD_DIR=build
@@ -19,6 +19,14 @@ test:
 
 run:
 	@go run . $(ARGS)
+
+slice:
+	@echo "Running slice command..."
+	@go run . slice $(ARGS)
+
+volume:
+	@echo "Running volume command..."
+	@go run . volume $(ARGS)
 
 fmt:
 	@echo "Formatting code..."
