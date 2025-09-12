@@ -26,5 +26,21 @@ func init() {
 }
 
 func initConfig() {
+	// Set config file path
+	home, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error getting home directory: %v\n", err)
+		return
+	}
+	
+	// Look for config file in home directory
+	viper.AddConfigPath(home)
+	viper.SetConfigName(".3mfanalyzer")
+	viper.SetConfigType("yaml")
+	
+	// Read config file if it exists
+	viper.ReadInConfig()
+	
+	// Also read from environment variables
 	viper.AutomaticEnv()
 }
