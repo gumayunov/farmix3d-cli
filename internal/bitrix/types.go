@@ -21,6 +21,14 @@ type Company struct {
 	Title string `json:"TITLE"`
 }
 
+// User represents a Bitrix24 user
+type User struct {
+	ID       string `json:"ID"`
+	Name     string `json:"NAME"`
+	LastName string `json:"LAST_NAME"`
+	FullName string `json:"FULL_NAME"`
+}
+
 // ProductSection represents a catalog section (folder)
 type ProductSection struct {
 	ID       int    `json:"id"`

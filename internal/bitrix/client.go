@@ -26,6 +26,11 @@ func NewClient(webhookURL string) *Client {
 	}
 }
 
+// GetWebhookURL returns the webhook URL (for internal use)
+func (c *Client) GetWebhookURL() string {
+	return c.webhookURL
+}
+
 // MakeRequest makes an HTTP request to Bitrix24 API (public for testing)
 func (c *Client) MakeRequest(method string, params map[string]interface{}) (*http.Response, error) {
 	return c.makeRequest(method, params)

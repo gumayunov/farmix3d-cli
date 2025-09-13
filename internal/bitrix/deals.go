@@ -3,6 +3,7 @@ package bitrix
 import (
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 // GetDeal retrieves deal information by ID
@@ -60,6 +61,51 @@ func (c *Client) GetCompany(companyID string) (*Company, error) {
 	}
 
 	return &company, nil
+}
+
+// GetUser retrieves user information by ID
+func (c *Client) GetUser(userID string) (*User, error) {
+	params := map[string]interface{}{
+		"id": userID,
+	}
+
+	resp, err := c.makeRequest("user.get", params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user: %v", err)
+	}
+
+	// user.get returns an array, so parse it differently
+	var users []User
+	if err := c.parseResponse(resp, &users); err != nil {
+		return nil, fmt.Errorf("failed to parse user response: %v", err)
+	}
+
+	if len(users) == 0 {
+		return nil, fmt.Errorf("user not found: %s", userID)
+	}
+
+	user := users[0]
+
+	// If FullName is not provided by API, construct it from Name and LastName
+	if user.FullName == "" && (user.Name != "" || user.LastName != "") {
+		user.FullName = strings.TrimSpace(user.Name + " " + user.LastName)
+	}
+
+	return &user, nil
+}
+
+// GetDealURL generates Bitrix24 deal URL
+func (c *Client) GetDealURL(dealID string) string {
+	// Extract base URL from webhook URL
+	// Example: https://farmix.bitrix24.ru/rest/10/jzz2ijynswg1nkur/ -> https://farmix.bitrix24.ru/
+	webhookURL := c.GetWebhookURL()
+	if strings.Contains(webhookURL, "/rest/") {
+		baseURL := webhookURL[:strings.Index(webhookURL, "/rest/")]
+		return fmt.Sprintf("%s/crm/deal/details/%s/", baseURL, dealID)
+	}
+	
+	// Fallback if webhook URL format is unexpected
+	return fmt.Sprintf("https://bitrix24.com/crm/deal/details/%s/", dealID)
 }
 
 // GetCustomerName retrieves customer name for a deal
