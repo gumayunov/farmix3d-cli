@@ -22,15 +22,17 @@ var (
 
 var crmAddItemsCmd = &cobra.Command{
 	Use:   "crm-add-items",
-	Short: "Add STL files as products to Bitrix24 deal",
-	Long: `Add STL files from a directory as products to a Bitrix24 deal.
+	Short: "Add 3D model files (STL/STEP) as products to Bitrix24 deal",
+	Long: `Add 3D model files from a directory as products to a Bitrix24 deal.
 	
 This command will:
 1. Get deal information from Bitrix24
 2. Create/find customer folder in catalog
-3. Create project subfolder with name "project - deal_id"
-4. Create products for each STL file
+3. Create project subfolder with name "project - deal_id"  
+4. Create products for each 3D model file (.stl and .step)
 5. Add products to the deal
+
+Product names will have "Деталь " prefix and include the file extension.
 
 Use --dry-run flag to preview what would be created without making changes.`,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -52,12 +54,12 @@ func runCRMAddItems() error {
 	}
 
 	if stlDir == "" {
-		return fmt.Errorf("STL directory cannot be empty")
+		return fmt.Errorf("3D files directory cannot be empty")
 	}
 
-	// Check if STL directory exists
+	// Check if 3D files directory exists
 	if _, err := os.Stat(stlDir); os.IsNotExist(err) {
-		return fmt.Errorf("STL directory does not exist: %s", stlDir)
+		return fmt.Errorf("3D files directory does not exist: %s", stlDir)
 	}
 
 	// Get webhook URL from config
@@ -118,26 +120,26 @@ func runCRMAddItems() error {
 		return fmt.Errorf("failed to ensure project section: %v", err)
 	}
 
-	// Find STL files
-	fmt.Printf("Scanning for STL files in %s...\n", stlDir)
-	stlFiles, err := findSTLFiles(stlDir)
+	// Find 3D files
+	fmt.Printf("Scanning for 3D files (STL/STEP) in %s...\n", stlDir)
+	files3D, err := find3DFiles(stlDir)
 	if err != nil {
-		return fmt.Errorf("failed to find STL files: %v", err)
+		return fmt.Errorf("failed to find 3D files: %v", err)
 	}
 
-	if len(stlFiles) == 0 {
-		return fmt.Errorf("no STL files found in directory: %s", stlDir)
+	if len(files3D) == 0 {
+		return fmt.Errorf("no 3D files (STL/STEP) found in directory: %s", stlDir)
 	}
 
-	fmt.Printf("Found %d STL files\n", len(stlFiles))
+	fmt.Printf("Found %d 3D files\n", len(files3D))
 
-	// Create products for STL files
+	// Create products for 3D files
 	if dryRun {
 		fmt.Printf("[DRY RUN] Analyzing products that would be created...\n")
 	} else {
 		fmt.Println("Creating products in catalog...")
 	}
-	productIDs, err := client.CreateProductsFromSTLFiles(stlFiles, projectSectionID, catalogID, dryRun)
+	productIDs, err := client.CreateProductsFrom3DFiles(files3D, projectSectionID, catalogID, dryRun)
 	if err != nil {
 		return fmt.Errorf("failed to create products: %v", err)
 	}
@@ -170,8 +172,8 @@ func runCRMAddItems() error {
 	} else {
 		fmt.Println("Products created:")
 	}
-	for i, fileName := range stlFiles {
-		productName := strings.TrimSuffix(fileName, ".stl")
+	for i, fileName := range files3D {
+		productName := bitrix.PRODUCT_NAME_PREFIX + fileName
 		if dryRun {
 			fmt.Printf("  - %s (ID: %s)\n", productName, productIDs[i])
 		} else {
@@ -182,9 +184,9 @@ func runCRMAddItems() error {
 	return nil
 }
 
-// findSTLFiles finds all STL files in the specified directory
-func findSTLFiles(dir string) ([]string, error) {
-	var stlFiles []string
+// find3DFiles finds all 3D model files (.stl and .step) in the specified directory
+func find3DFiles(dir string) ([]string, error) {
+	var files3D []string
 
 	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -195,8 +197,9 @@ func findSTLFiles(dir string) ([]string, error) {
 			return nil
 		}
 
-		if strings.HasSuffix(strings.ToLower(d.Name()), ".stl") {
-			stlFiles = append(stlFiles, d.Name())
+		lowerName := strings.ToLower(d.Name())
+		if strings.HasSuffix(lowerName, ".stl") || strings.HasSuffix(lowerName, ".step") {
+			files3D = append(files3D, d.Name())
 		}
 
 		return nil
@@ -206,13 +209,13 @@ func findSTLFiles(dir string) ([]string, error) {
 		return nil, err
 	}
 
-	return stlFiles, nil
+	return files3D, nil
 }
 
 func init() {
 	crmAddItemsCmd.Flags().StringVar(&dealID, "deal-id", "", "Bitrix24 deal ID (required)")
 	crmAddItemsCmd.Flags().StringVar(&projectName, "project-name", "", "Project name for folder creation (required)")
-	crmAddItemsCmd.Flags().StringVar(&stlDir, "stl-dir", "", "Directory containing STL files (required)")
+	crmAddItemsCmd.Flags().StringVar(&stlDir, "stl-dir", "", "Directory containing 3D model files (STL/STEP) (required)")
 	crmAddItemsCmd.Flags().BoolVar(&dryRun, "dry-run", false, "Preview what would be created without making changes")
 
 	crmAddItemsCmd.MarkFlagRequired("deal-id")

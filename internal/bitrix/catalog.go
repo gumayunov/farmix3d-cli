@@ -7,6 +7,9 @@ import (
 	"strings"
 )
 
+// PRODUCT_NAME_PREFIX is the prefix added to all product names created from 3D files
+const PRODUCT_NAME_PREFIX = "Деталь "
+
 // ListSections retrieves catalog sections
 func (c *Client) ListSections(catalogID string) ([]ProductSection, error) {
 	params := map[string]interface{}{
@@ -347,8 +350,8 @@ func (c *Client) EnsureProjectSection(projectName, dealID, customerSectionID, ca
 	return sectionID, nil
 }
 
-// CreateProductsFromSTLFiles creates products for STL files in the specified section
-func (c *Client) CreateProductsFromSTLFiles(stlFiles []string, sectionID string, catalogID string, dryRun bool) ([]string, error) {
+// CreateProductsFrom3DFiles creates products for 3D model files (.stl and .step) in the specified section
+func (c *Client) CreateProductsFrom3DFiles(files3D []string, sectionID string, catalogID string, dryRun bool) ([]string, error) {
 	// First, get existing products in the section
 	if dryRun {
 		fmt.Printf("[DRY RUN] Checking for existing products in section %s...\n", sectionID)
@@ -371,9 +374,9 @@ func (c *Client) CreateProductsFromSTLFiles(stlFiles []string, sectionID string,
 	var createdCount int
 	var skippedCount int
 	
-	for _, fileName := range stlFiles {
-		// Remove .stl extension from product name
-		productName := strings.TrimSuffix(fileName, ".stl")
+	for _, fileName := range files3D {
+		// Add prefix and keep file extension (.stl or .step)
+		productName := PRODUCT_NAME_PREFIX + fileName
 		
 		// Check if product already exists
 		if existingProduct := c.FindProductByName(existingProducts, productName); existingProduct != nil {
