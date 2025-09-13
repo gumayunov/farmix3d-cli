@@ -17,6 +17,7 @@ var (
 	dealID      string
 	projectName string
 	stlDir      string
+	dryRun      bool
 )
 
 var crmAddItemsCmd = &cobra.Command{
@@ -29,7 +30,9 @@ This command will:
 2. Create/find customer folder in catalog
 3. Create project subfolder with name "project - deal_id"
 4. Create products for each STL file
-5. Add products to the deal`,
+5. Add products to the deal
+
+Use --dry-run flag to preview what would be created without making changes.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := runCRMAddItems(); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
@@ -69,7 +72,11 @@ func runCRMAddItems() error {
 		return fmt.Errorf("catalog_id not configured. Please set it in ~/.3mfanalyzer config")
 	}
 
-	fmt.Printf("Processing deal %s with project '%s'...\n", dealID, projectName)
+	if dryRun {
+		fmt.Printf("[DRY RUN] Processing deal %s with project '%s'...\n", dealID, projectName)
+	} else {
+		fmt.Printf("Processing deal %s with project '%s'...\n", dealID, projectName)
+	}
 
 	// Create Bitrix24 client
 	client := bitrix.NewClient(webhookURL)
@@ -90,15 +97,23 @@ func runCRMAddItems() error {
 	fmt.Printf("Customer: %s\n", customerName)
 
 	// Ensure customer section exists
-	fmt.Printf("Ensuring customer folder '%s' exists...\n", customerName)
-	customerSectionID, err := client.EnsureCustomerSection(customerName, catalogID)
+	if dryRun {
+		fmt.Printf("[DRY RUN] Checking customer folder '%s'...\n", customerName)
+	} else {
+		fmt.Printf("Ensuring customer folder '%s' exists...\n", customerName)
+	}
+	customerSectionID, err := client.EnsureCustomerSection(customerName, catalogID, dryRun)
 	if err != nil {
 		return fmt.Errorf("failed to ensure customer section: %v", err)
 	}
 
 	// Ensure project section exists
-	fmt.Printf("Ensuring project folder '%s - %s' exists...\n", projectName, dealID)
-	projectSectionID, err := client.EnsureProjectSection(projectName, dealID, customerSectionID, catalogID)
+	if dryRun {
+		fmt.Printf("[DRY RUN] Checking project folder '%s - %s'...\n", projectName, dealID)
+	} else {
+		fmt.Printf("Ensuring project folder '%s - %s' exists...\n", projectName, dealID)
+	}
+	projectSectionID, err := client.EnsureProjectSection(projectName, dealID, customerSectionID, catalogID, dryRun)
 	if err != nil {
 		return fmt.Errorf("failed to ensure project section: %v", err)
 	}
@@ -117,27 +132,51 @@ func runCRMAddItems() error {
 	fmt.Printf("Found %d STL files\n", len(stlFiles))
 
 	// Create products for STL files
-	fmt.Println("Creating products in catalog...")
-	productIDs, err := client.CreateProductsFromSTLFiles(stlFiles, projectSectionID, catalogID)
+	if dryRun {
+		fmt.Printf("[DRY RUN] Analyzing products that would be created...\n")
+	} else {
+		fmt.Println("Creating products in catalog...")
+	}
+	productIDs, err := client.CreateProductsFromSTLFiles(stlFiles, projectSectionID, catalogID, dryRun)
 	if err != nil {
 		return fmt.Errorf("failed to create products: %v", err)
 	}
 
-	fmt.Printf("Created %d products\n", len(productIDs))
+	if dryRun {
+		fmt.Printf("[DRY RUN] Would process %d products\n", len(productIDs))
+	} else {
+		fmt.Printf("Created %d products\n", len(productIDs))
+	}
 
 	// Add products to deal
-	fmt.Println("Adding products to deal...")
+	if dryRun {
+		fmt.Printf("[DRY RUN] Checking what products would be added to deal...\n")
+	} else {
+		fmt.Println("Adding products to deal...")
+	}
 	productRows := bitrix.CreateDealProductRows(productIDs)
-	err = client.AddProductRowsToDeal(dealID, productRows)
+	err = client.AddProductRowsToDeal(dealID, productRows, dryRun)
 	if err != nil {
 		return fmt.Errorf("failed to add products to deal: %v", err)
 	}
 
-	fmt.Printf("Successfully added %d products to deal %s\n", len(productIDs), dealID)
-	fmt.Println("Products created:")
+	if dryRun {
+		fmt.Printf("[DRY RUN] Would add %d products to deal %s\n", len(productIDs), dealID)
+	} else {
+		fmt.Printf("Successfully added %d products to deal %s\n", len(productIDs), dealID)
+	}
+	if dryRun {
+		fmt.Println("[DRY RUN] Products that would be processed:")
+	} else {
+		fmt.Println("Products created:")
+	}
 	for i, fileName := range stlFiles {
 		productName := strings.TrimSuffix(fileName, ".stl")
-		fmt.Printf("  - %s (ID: %s)\n", productName, productIDs[i])
+		if dryRun {
+			fmt.Printf("  - %s (ID: %s)\n", productName, productIDs[i])
+		} else {
+			fmt.Printf("  - %s (ID: %s)\n", productName, productIDs[i])
+		}
 	}
 
 	return nil
@@ -174,6 +213,7 @@ func init() {
 	crmAddItemsCmd.Flags().StringVar(&dealID, "deal-id", "", "Bitrix24 deal ID (required)")
 	crmAddItemsCmd.Flags().StringVar(&projectName, "project-name", "", "Project name for folder creation (required)")
 	crmAddItemsCmd.Flags().StringVar(&stlDir, "stl-dir", "", "Directory containing STL files (required)")
+	crmAddItemsCmd.Flags().BoolVar(&dryRun, "dry-run", false, "Preview what would be created without making changes")
 
 	crmAddItemsCmd.MarkFlagRequired("deal-id")
 	crmAddItemsCmd.MarkFlagRequired("project-name")

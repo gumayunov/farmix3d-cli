@@ -188,12 +188,33 @@ func (c *Client) GetExistingProductRows(dealID string) ([]DealProductRow, error)
 }
 
 // AddProductRowsToDeal adds new product rows to existing ones
-func (c *Client) AddProductRowsToDeal(dealID string, newProducts []DealProductRow) error {
+func (c *Client) AddProductRowsToDeal(dealID string, newProducts []DealProductRow, dryRun bool) error {
 	// Get existing products
 	existingProducts, err := c.GetExistingProductRows(dealID)
 	if err != nil {
 		// If getting existing products fails, just add new ones
 		existingProducts = []DealProductRow{}
+	}
+
+	if dryRun {
+		fmt.Printf("[DRY RUN] Deal %s currently has %d existing products\n", dealID, len(existingProducts))
+		fmt.Printf("[DRY RUN] Would add %d new products to deal\n", len(newProducts))
+		
+		if len(existingProducts) > 0 {
+			fmt.Printf("[DRY RUN] Existing products in deal:\n")
+			for _, product := range existingProducts {
+				fmt.Printf("  - Product ID: %s (Quantity: %.1f)\n", product.ProductID, product.Quantity)
+			}
+		}
+		
+		fmt.Printf("[DRY RUN] New products that would be added:\n")
+		for _, product := range newProducts {
+			fmt.Printf("  - Product ID: %s (Quantity: %.1f)\n", product.ProductID, product.Quantity)
+		}
+		
+		totalProducts := len(existingProducts) + len(newProducts)
+		fmt.Printf("[DRY RUN] Total products after addition: %d\n", totalProducts)
+		return nil
 	}
 
 	// Combine existing and new products

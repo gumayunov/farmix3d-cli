@@ -286,7 +286,7 @@ func (c *Client) FindProductByName(products []Product, name string) *Product {
 }
 
 // EnsureCustomerSection ensures customer section exists, creates if not
-func (c *Client) EnsureCustomerSection(customerName string, catalogID string) (string, error) {
+func (c *Client) EnsureCustomerSection(customerName string, catalogID string, dryRun bool) (string, error) {
 	sections, err := c.ListSections(catalogID)
 	if err != nil {
 		return "", fmt.Errorf("failed to list sections: %v", err)
@@ -294,7 +294,16 @@ func (c *Client) EnsureCustomerSection(customerName string, catalogID string) (s
 
 	// Look for customer section in root (parentID = "")
 	if section := c.FindSectionByName(sections, customerName, ""); section != nil {
+		if dryRun {
+			fmt.Printf("[DRY RUN] Customer section '%s' exists (ID: %d)\n", customerName, section.ID)
+		}
 		return fmt.Sprintf("%d", section.ID), nil
+	}
+
+	if dryRun {
+		fmt.Printf("[DRY RUN] Customer section '%s' does not exist - would create new section\n", customerName)
+		// Return a placeholder ID for dry run
+		return "dry-run-customer-section-id", nil
 	}
 
 	// Create customer section in root
@@ -307,7 +316,7 @@ func (c *Client) EnsureCustomerSection(customerName string, catalogID string) (s
 }
 
 // EnsureProjectSection ensures project section exists under customer, creates if not
-func (c *Client) EnsureProjectSection(projectName, dealID, customerSectionID, catalogID string) (string, error) {
+func (c *Client) EnsureProjectSection(projectName, dealID, customerSectionID, catalogID string, dryRun bool) (string, error) {
 	sectionName := fmt.Sprintf("%s - %s", projectName, dealID)
 	
 	sections, err := c.ListSections(catalogID)
@@ -317,7 +326,16 @@ func (c *Client) EnsureProjectSection(projectName, dealID, customerSectionID, ca
 
 	// Look for project section under customer
 	if section := c.FindSectionByName(sections, sectionName, customerSectionID); section != nil {
+		if dryRun {
+			fmt.Printf("[DRY RUN] Project section '%s' exists (ID: %d)\n", sectionName, section.ID)
+		}
 		return fmt.Sprintf("%d", section.ID), nil
+	}
+
+	if dryRun {
+		fmt.Printf("[DRY RUN] Project section '%s' does not exist - would create under customer section ID %s\n", sectionName, customerSectionID)
+		// Return a placeholder ID for dry run
+		return "dry-run-project-section-id", nil
 	}
 
 	// Create project section under customer
@@ -330,15 +348,24 @@ func (c *Client) EnsureProjectSection(projectName, dealID, customerSectionID, ca
 }
 
 // CreateProductsFromSTLFiles creates products for STL files in the specified section
-func (c *Client) CreateProductsFromSTLFiles(stlFiles []string, sectionID string, catalogID string) ([]string, error) {
+func (c *Client) CreateProductsFromSTLFiles(stlFiles []string, sectionID string, catalogID string, dryRun bool) ([]string, error) {
 	// First, get existing products in the section
-	fmt.Println("Checking for existing products in section...")
+	if dryRun {
+		fmt.Printf("[DRY RUN] Checking for existing products in section %s...\n", sectionID)
+	} else {
+		fmt.Println("Checking for existing products in section...")
+	}
+	
 	existingProducts, err := c.ListProducts(catalogID, sectionID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list existing products: %v", err)
 	}
 	
-	fmt.Printf("Found %d existing products in section\n", len(existingProducts))
+	if dryRun {
+		fmt.Printf("[DRY RUN] Found %d existing products in section\n", len(existingProducts))
+	} else {
+		fmt.Printf("Found %d existing products in section\n", len(existingProducts))
+	}
 	
 	var productIDs []string
 	var createdCount int
@@ -350,24 +377,39 @@ func (c *Client) CreateProductsFromSTLFiles(stlFiles []string, sectionID string,
 		
 		// Check if product already exists
 		if existingProduct := c.FindProductByName(existingProducts, productName); existingProduct != nil {
-			fmt.Printf("Product '%s' already exists (ID: %d), skipping creation\n", productName, existingProduct.ID)
+			if dryRun {
+				fmt.Printf("[DRY RUN] Product '%s' already exists (ID: %d) - would skip creation\n", productName, existingProduct.ID)
+			} else {
+				fmt.Printf("Product '%s' already exists (ID: %d), skipping creation\n", productName, existingProduct.ID)
+			}
 			productIDs = append(productIDs, fmt.Sprintf("%d", existingProduct.ID))
 			skippedCount++
 			continue
 		}
 		
-		// Create new product
-		fmt.Printf("Creating product '%s'...\n", productName)
-		productID, err := c.CreateProduct(productName, sectionID, catalogID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create product '%s': %v", productName, err)
+		if dryRun {
+			fmt.Printf("[DRY RUN] Product '%s' does not exist - would create new product\n", productName)
+			// Use placeholder ID for dry run
+			productIDs = append(productIDs, fmt.Sprintf("dry-run-product-%d", createdCount+1))
+			createdCount++
+		} else {
+			// Create new product
+			fmt.Printf("Creating product '%s'...\n", productName)
+			productID, err := c.CreateProduct(productName, sectionID, catalogID)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create product '%s': %v", productName, err)
+			}
+			
+			productIDs = append(productIDs, productID)
+			createdCount++
 		}
-		
-		productIDs = append(productIDs, productID)
-		createdCount++
 	}
 	
-	fmt.Printf("Products processed: %d created, %d skipped (already existed)\n", createdCount, skippedCount)
+	if dryRun {
+		fmt.Printf("[DRY RUN] Products analysis: %d would be created, %d already exist\n", createdCount, skippedCount)
+	} else {
+		fmt.Printf("Products processed: %d created, %d skipped (already existed)\n", createdCount, skippedCount)
+	}
 	return productIDs, nil
 }
 
