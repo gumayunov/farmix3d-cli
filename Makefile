@@ -1,4 +1,4 @@
-.PHONY: build clean test run slice volume fmt vet
+.PHONY: build clean test test-verbose test-coverage run slice volume fmt vet
 
 BINARY_NAME=3mfanalyzer
 BUILD_DIR=build
@@ -16,6 +16,14 @@ clean:
 test:
 	@echo "Running tests..."
 	@go test ./...
+
+test-verbose:
+	@echo "Running tests with verbose output..."
+	@go test -v ./...
+
+test-coverage:
+	@echo "Running tests with coverage..."
+	@go test -cover ./...
 
 run:
 	@go run . $(ARGS)
