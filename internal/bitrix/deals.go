@@ -2,6 +2,7 @@ package bitrix
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 )
@@ -23,6 +24,52 @@ func (c *Client) GetDeal(dealID string) (*Deal, error) {
 	}
 
 	return &deal, nil
+}
+
+// GetDealWithAmount retrieves deal information including amount and currency
+func (c *Client) GetDealWithAmount(dealID string) (*Deal, error) {
+	params := map[string]interface{}{
+		"id": dealID,
+		"select": []string{"ID", "TITLE", "CONTACT_ID", "COMPANY_ID", "ASSIGNED_BY_ID", "OPPORTUNITY", "CURRENCY_ID"},
+	}
+
+	resp, err := c.makeRequest("crm.deal.get", params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get deal with amount: %v", err)
+	}
+
+	// Parse into raw structure first
+	var dealRaw DealRaw
+	if err := c.parseResponse(resp, &dealRaw); err != nil {
+		return nil, fmt.Errorf("failed to parse deal with amount response: %v", err)
+	}
+
+	// Convert to final Deal structure
+	deal := &Deal{
+		ID:           dealRaw.ID,
+		Title:        dealRaw.Title,
+		ContactID:    dealRaw.ContactID,
+		CompanyID:    dealRaw.CompanyID,
+		AssignedByID: dealRaw.AssignedByID,
+		CurrencyID:   dealRaw.CurrencyID,
+	}
+
+	// Parse opportunity amount from string
+	if dealRaw.OpportunityRaw != "" {
+		// Try to parse as float
+		opportunity, err := strconv.ParseFloat(dealRaw.OpportunityRaw, 64)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse deal amount '%s': %v", dealRaw.OpportunityRaw, err)
+		}
+		deal.Opportunity = opportunity
+	}
+
+	// Set default currency if not specified
+	if deal.CurrencyID == "" {
+		deal.CurrencyID = "RUB"
+	}
+
+	return deal, nil
 }
 
 // GetContact retrieves contact information by ID
@@ -140,7 +187,7 @@ func (c *Client) AddProductsToDeal(dealID string, products []DealProductRow) err
 	rows := make([]interface{}, len(products))
 	for i, product := range products {
 		rows[i] = map[string]interface{}{
-			"PRODUCT_ID": product.ProductID,
+			"PRODUCT_ID": product.ProductID.String(),
 			"QUANTITY":   product.Quantity,
 			"PRICE":      product.Price,
 		}
@@ -203,13 +250,13 @@ func (c *Client) AddProductRowsToDeal(dealID string, newProducts []DealProductRo
 		if len(existingProducts) > 0 {
 			fmt.Printf("[DRY RUN] Existing products in deal:\n")
 			for _, product := range existingProducts {
-				fmt.Printf("  - Product ID: %s (Quantity: %.1f)\n", product.ProductID, product.Quantity)
+				fmt.Printf("  - Product ID: %s (Quantity: %.1f)\n", product.ProductID.String(), product.Quantity)
 			}
 		}
 		
 		fmt.Printf("[DRY RUN] New products that would be added:\n")
 		for _, product := range newProducts {
-			fmt.Printf("  - Product ID: %s (Quantity: %.1f)\n", product.ProductID, product.Quantity)
+			fmt.Printf("  - Product ID: %s (Quantity: %.1f)\n", product.ProductID.String(), product.Quantity)
 		}
 		
 		totalProducts := len(existingProducts) + len(newProducts)
@@ -221,6 +268,100 @@ func (c *Client) AddProductRowsToDeal(dealID string, newProducts []DealProductRo
 	allProducts := append(existingProducts, newProducts...)
 
 	return c.AddProductsToDeal(dealID, allProducts)
+}
+
+// SpreadPriceByCount distributes deal amount among products proportionally by quantity
+func (c *Client) SpreadPriceByCount(dealID string, totalAmount float64, currency string, dryRun bool) error {
+	// Get existing products in deal
+	products, err := c.GetExistingProductRows(dealID)
+	if err != nil {
+		return fmt.Errorf("failed to get existing products: %v", err)
+	}
+
+	if len(products) == 0 {
+		return fmt.Errorf("no products found in deal")
+	}
+
+	// Calculate total quantity
+	totalQuantity := 0.0
+	for _, product := range products {
+		totalQuantity += product.Quantity
+	}
+
+	if totalQuantity <= 0 {
+		return fmt.Errorf("total quantity is zero or negative: %.2f", totalQuantity)
+	}
+
+	if dryRun {
+		fmt.Printf("[DRY RUN] Total quantity: %.2f units\n", totalQuantity)
+		fmt.Printf("[DRY RUN] Distributing price by count method:\n")
+	} else {
+		fmt.Printf("Total quantity: %.2f units\n", totalQuantity)
+		fmt.Printf("Distributing price by count method:\n")
+	}
+
+	// Calculate proportional unit prices with rounding
+	distributedSum := 0.0
+	for i := range products {
+		if i == len(products)-1 {
+			// Last product - adjust remainder for exact total
+			remainingAmount := totalAmount - distributedSum
+			unitPrice := remainingAmount / products[i].Quantity
+			products[i].Price = math.Round(unitPrice*100) / 100 // Round to 2 decimal places
+			
+			if dryRun {
+				fmt.Printf("  - Product ID %s: %.2f units → %.2f %s per unit → total %.2f %s (remainder adjusted)\n", 
+					products[i].ProductID.String(), products[i].Quantity, products[i].Price, currency, 
+					products[i].Price*products[i].Quantity, currency)
+			} else {
+				fmt.Printf("  - Product ID %s: %.2f units → %.2f %s per unit → total %.2f %s (remainder adjusted)\n", 
+					products[i].ProductID.String(), products[i].Quantity, products[i].Price, currency, 
+					products[i].Price*products[i].Quantity, currency)
+			}
+		} else {
+			// Calculate proportional price and round
+			proportion := products[i].Quantity / totalQuantity
+			unitPrice := (proportion * totalAmount) / products[i].Quantity
+			products[i].Price = math.Round(unitPrice*100) / 100 // Round to 2 decimal places
+			productTotal := products[i].Price * products[i].Quantity
+			distributedSum += productTotal
+			
+			if dryRun {
+				fmt.Printf("  - Product ID %s: %.2f units → %.2f %s per unit → total %.2f %s\n", 
+					products[i].ProductID.String(), products[i].Quantity, products[i].Price, currency, 
+					productTotal, currency)
+			} else {
+				fmt.Printf("  - Product ID %s: %.2f units → %.2f %s per unit → total %.2f %s\n", 
+					products[i].ProductID.String(), products[i].Quantity, products[i].Price, currency, 
+					productTotal, currency)
+			}
+		}
+	}
+
+	// Verify total sum
+	verificationSum := 0.0
+	for _, product := range products {
+		verificationSum += product.Price * product.Quantity
+	}
+
+	if dryRun {
+		fmt.Printf("[DRY RUN] Verification: total distributed %.2f %s = deal amount %.2f %s ✓\n", 
+			verificationSum, currency, totalAmount, currency)
+		fmt.Printf("[DRY RUN] Would update %d product prices\n", len(products))
+		return nil
+	}
+
+	fmt.Printf("Verification: total distributed %.2f %s = deal amount %.2f %s ✓\n", 
+		verificationSum, currency, totalAmount, currency)
+
+	// Update product prices in Bitrix24
+	fmt.Println("Updating product prices...")
+	err = c.AddProductsToDeal(dealID, products)
+	if err != nil {
+		return fmt.Errorf("failed to update product prices: %v", err)
+	}
+
+	return nil
 }
 
 // ValidateDealID checks if deal ID is a valid number

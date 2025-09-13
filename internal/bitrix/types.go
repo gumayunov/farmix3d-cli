@@ -1,12 +1,61 @@
 package bitrix
 
+import (
+	"encoding/json"
+	"fmt"
+	"strings"
+)
+
+// ProductIDString is a custom type that can unmarshal both string and number IDs from JSON
+type ProductIDString string
+
+// UnmarshalJSON implements custom JSON unmarshaling for ProductIDString
+// It converts both string and numeric JSON values to string
+func (p *ProductIDString) UnmarshalJSON(data []byte) error {
+	// Remove quotes if present (string case)
+	s := strings.Trim(string(data), `"`)
+	
+	// If it's a raw number (no quotes), convert to string
+	if s == string(data) {
+		// It's a number, convert to string
+		var num float64
+		if err := json.Unmarshal(data, &num); err != nil {
+			return fmt.Errorf("failed to unmarshal ProductID as number: %v", err)
+		}
+		*p = ProductIDString(fmt.Sprintf("%.0f", num))
+	} else {
+		// It's already a string
+		*p = ProductIDString(s)
+	}
+	
+	return nil
+}
+
+// String returns the string representation
+func (p ProductIDString) String() string {
+	return string(p)
+}
+
 // Deal represents a Bitrix24 deal
 type Deal struct {
+	ID            string  `json:"ID"`
+	Title         string  `json:"TITLE"`
+	ContactID     string  `json:"CONTACT_ID"`
+	CompanyID     string  `json:"COMPANY_ID"`
+	AssignedByID  string  `json:"ASSIGNED_BY_ID"`
+	Opportunity   float64 `json:"-"`             // Deal amount (parsed separately)
+	CurrencyID    string  `json:"CURRENCY_ID"`   // Deal currency
+}
+
+// DealRaw represents a Bitrix24 deal with raw string fields for parsing
+type DealRaw struct {
 	ID            string `json:"ID"`
 	Title         string `json:"TITLE"`
 	ContactID     string `json:"CONTACT_ID"`
 	CompanyID     string `json:"COMPANY_ID"`
 	AssignedByID  string `json:"ASSIGNED_BY_ID"`
+	OpportunityRaw string `json:"OPPORTUNITY"`   // Deal amount as string
+	CurrencyID    string `json:"CURRENCY_ID"`   // Deal currency
 }
 
 // Contact represents a Bitrix24 contact
@@ -45,10 +94,11 @@ type Product struct {
 
 // DealProductRow represents a product row in a deal
 type DealProductRow struct {
-	ProductID string  `json:"PRODUCT_ID"`
-	Quantity  float64 `json:"QUANTITY"`
-	Price     float64 `json:"PRICE"`
+	ProductID ProductIDString `json:"PRODUCT_ID"` // Product ID with custom unmarshaling
+	Quantity  float64         `json:"QUANTITY"`
+	Price     float64         `json:"PRICE"`
 }
+
 
 // BitrixResponse represents a generic API response
 type BitrixResponse struct {

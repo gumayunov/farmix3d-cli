@@ -419,7 +419,7 @@ func CreateDealProductRows(productIDs []string) []DealProductRow {
 	
 	for _, productID := range productIDs {
 		row := DealProductRow{
-			ProductID: productID,
+			ProductID: ProductIDString(productID),
 			Quantity:  1.0,
 			Price:     0.0, // Default price, can be set later in Bitrix24
 		}
