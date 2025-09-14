@@ -4,11 +4,52 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 )
 
 // PRODUCT_NAME_PREFIX is the prefix added to all product names created from 3D files
 const PRODUCT_NAME_PREFIX = "Деталь "
+
+// ParseFileName extracts quantity and clean name from 3D model filename
+// Supports formats: "2x_part.stl", "3х_gear.step", "simple.stl"
+// Returns clean name without extension and quantity (default 1.0)
+func ParseFileName(fileName string) (cleanName string, quantity float64) {
+	// Default quantity
+	quantity = 1.0
+	
+	// Remove file extension
+	nameWithoutExt := strings.TrimSuffix(fileName, filepath.Ext(fileName))
+	
+	// Regex to match quantity prefixes: 2x_, 3х_, 10x_, etc.
+	// Supports both 'x' and 'х' (cyrillic)
+	quantityRegex := regexp.MustCompile(`^(\d+)[xх]_(.+)$`)
+	matches := quantityRegex.FindStringSubmatch(nameWithoutExt)
+	
+	if len(matches) == 3 {
+		// Found quantity prefix
+		if parsedQuantity, err := strconv.ParseFloat(matches[1], 64); err == nil && parsedQuantity > 0 {
+			quantity = parsedQuantity
+			cleanName = matches[2]
+		} else {
+			// Invalid quantity (0 or negative), treat as regular filename
+			cleanName = nameWithoutExt
+		}
+	} else {
+		// No quantity prefix, use whole name without extension
+		cleanName = nameWithoutExt
+	}
+	
+	return cleanName, quantity
+}
+
+// FormatProductName formats clean name into product name with quotes
+// Example: "bracket" -> "Деталь \"bracket\""
+func FormatProductName(cleanName string) string {
+	return PRODUCT_NAME_PREFIX + "\"" + cleanName + "\""
+}
 
 // ListSections retrieves catalog sections
 func (c *Client) ListSections(catalogID string) ([]ProductSection, error) {
@@ -351,7 +392,7 @@ func (c *Client) EnsureProjectSection(projectName, dealID, customerSectionID, ca
 }
 
 // CreateProductsFrom3DFiles creates products for 3D model files (.stl and .step) in the specified section
-func (c *Client) CreateProductsFrom3DFiles(files3D []string, sectionID string, catalogID string, dryRun bool) ([]string, error) {
+func (c *Client) CreateProductsFrom3DFiles(files3D []string, sectionID string, catalogID string, dryRun bool) ([]ProductInfo, error) {
 	// First, get existing products in the section
 	if dryRun {
 		fmt.Printf("[DRY RUN] Checking for existing products in section %s...\n", sectionID)
@@ -370,40 +411,50 @@ func (c *Client) CreateProductsFrom3DFiles(files3D []string, sectionID string, c
 		fmt.Printf("Found %d existing products in section\n", len(existingProducts))
 	}
 	
-	var productIDs []string
+	var products []ProductInfo
 	var createdCount int
 	var skippedCount int
 	
 	for _, fileName := range files3D {
-		// Add prefix and keep file extension (.stl or .step)
-		productName := PRODUCT_NAME_PREFIX + fileName
+		// Parse filename to extract quantity and clean name
+		cleanName, quantity := ParseFileName(fileName)
+		productName := FormatProductName(cleanName)
 		
 		// Check if product already exists
 		if existingProduct := c.FindProductByName(existingProducts, productName); existingProduct != nil {
 			if dryRun {
-				fmt.Printf("[DRY RUN] Product '%s' already exists (ID: %d) - would skip creation\n", productName, existingProduct.ID)
+				fmt.Printf("[DRY RUN] Product '%s' already exists (ID: %d) - would skip creation (quantity: %.0f)\n", productName, existingProduct.ID, quantity)
 			} else {
-				fmt.Printf("Product '%s' already exists (ID: %d), skipping creation\n", productName, existingProduct.ID)
+				fmt.Printf("Product '%s' already exists (ID: %d), skipping creation (quantity: %.0f)\n", productName, existingProduct.ID, quantity)
 			}
-			productIDs = append(productIDs, fmt.Sprintf("%d", existingProduct.ID))
+			products = append(products, ProductInfo{
+				ID:       fmt.Sprintf("%d", existingProduct.ID),
+				Quantity: quantity,
+			})
 			skippedCount++
 			continue
 		}
 		
 		if dryRun {
-			fmt.Printf("[DRY RUN] Product '%s' does not exist - would create new product\n", productName)
+			fmt.Printf("[DRY RUN] Product '%s' does not exist - would create new product (quantity: %.0f)\n", productName, quantity)
 			// Use placeholder ID for dry run
-			productIDs = append(productIDs, fmt.Sprintf("dry-run-product-%d", createdCount+1))
+			products = append(products, ProductInfo{
+				ID:       fmt.Sprintf("dry-run-product-%d", createdCount+1),
+				Quantity: quantity,
+			})
 			createdCount++
 		} else {
 			// Create new product
-			fmt.Printf("Creating product '%s'...\n", productName)
+			fmt.Printf("Creating product '%s' (quantity: %.0f)...\n", productName, quantity)
 			productID, err := c.CreateProduct(productName, sectionID, catalogID)
 			if err != nil {
 				return nil, fmt.Errorf("failed to create product '%s': %v", productName, err)
 			}
 			
-			productIDs = append(productIDs, productID)
+			products = append(products, ProductInfo{
+				ID:       productID,
+				Quantity: quantity,
+			})
 			createdCount++
 		}
 	}
@@ -413,17 +464,17 @@ func (c *Client) CreateProductsFrom3DFiles(files3D []string, sectionID string, c
 	} else {
 		fmt.Printf("Products processed: %d created, %d skipped (already existed)\n", createdCount, skippedCount)
 	}
-	return productIDs, nil
+	return products, nil
 }
 
-// CreateDealProductRows converts product IDs to deal product rows
-func CreateDealProductRows(productIDs []string) []DealProductRow {
+// CreateDealProductRows converts ProductInfo to deal product rows
+func CreateDealProductRows(products []ProductInfo) []DealProductRow {
 	var rows []DealProductRow
 	
-	for _, productID := range productIDs {
+	for _, product := range products {
 		row := DealProductRow{
-			ProductID: ProductIDString(productID),
-			Quantity:  1.0,
+			ProductID: ProductIDString(product.ID),
+			Quantity:  product.Quantity,
 			Price:     0.0, // Default price, can be set later in Bitrix24
 		}
 		rows = append(rows, row)

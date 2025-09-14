@@ -139,15 +139,15 @@ func runCRMAddItems() error {
 	} else {
 		fmt.Println("Creating products in catalog...")
 	}
-	productIDs, err := client.CreateProductsFrom3DFiles(files3D, projectSectionID, catalogID, dryRun)
+	products, err := client.CreateProductsFrom3DFiles(files3D, projectSectionID, catalogID, dryRun)
 	if err != nil {
 		return fmt.Errorf("failed to create products: %v", err)
 	}
 
 	if dryRun {
-		fmt.Printf("[DRY RUN] Would process %d products\n", len(productIDs))
+		fmt.Printf("[DRY RUN] Would process %d products\n", len(products))
 	} else {
-		fmt.Printf("Created %d products\n", len(productIDs))
+		fmt.Printf("Created %d products\n", len(products))
 	}
 
 	// Add products to deal
@@ -156,16 +156,16 @@ func runCRMAddItems() error {
 	} else {
 		fmt.Println("Adding products to deal...")
 	}
-	productRows := bitrix.CreateDealProductRows(productIDs)
+	productRows := bitrix.CreateDealProductRows(products)
 	err = client.AddProductRowsToDeal(dealID, productRows, dryRun)
 	if err != nil {
 		return fmt.Errorf("failed to add products to deal: %v", err)
 	}
 
 	if dryRun {
-		fmt.Printf("[DRY RUN] Would add %d products to deal %s\n", len(productIDs), dealID)
+		fmt.Printf("[DRY RUN] Would add %d products to deal %s\n", len(products), dealID)
 	} else {
-		fmt.Printf("Successfully added %d products to deal %s\n", len(productIDs), dealID)
+		fmt.Printf("Successfully added %d products to deal %s\n", len(products), dealID)
 	}
 	if dryRun {
 		fmt.Println("[DRY RUN] Products that would be processed:")
@@ -173,11 +173,12 @@ func runCRMAddItems() error {
 		fmt.Println("Products created:")
 	}
 	for i, fileName := range files3D {
-		productName := bitrix.PRODUCT_NAME_PREFIX + fileName
+		cleanName, quantity := bitrix.ParseFileName(fileName)
+		productName := bitrix.FormatProductName(cleanName)
 		if dryRun {
-			fmt.Printf("  - %s (ID: %s)\n", productName, productIDs[i])
+			fmt.Printf("  - %s (ID: %s, Quantity: %.0f)\n", productName, products[i].ID, quantity)
 		} else {
-			fmt.Printf("  - %s (ID: %s)\n", productName, productIDs[i])
+			fmt.Printf("  - %s (ID: %s, Quantity: %.0f)\n", productName, products[i].ID, quantity)
 		}
 	}
 

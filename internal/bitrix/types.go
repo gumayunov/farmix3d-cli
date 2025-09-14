@@ -92,6 +92,12 @@ type Product struct {
 	IblockSectionId  *int   `json:"iblockSectionId"` // Can be null
 }
 
+// ProductInfo represents product information extracted from filename
+type ProductInfo struct {
+	ID       string  // Product ID from Bitrix24
+	Quantity float64 // Quantity extracted from filename or default 1.0
+}
+
 // DealProductRow represents a product row in a deal
 type DealProductRow struct {
 	ProductID ProductIDString `json:"PRODUCT_ID"` // Product ID with custom unmarshaling
