@@ -93,41 +93,71 @@ func TestFormatProductName(t *testing.T) {
 	tests := []struct {
 		name          string
 		cleanName     string
+		quantity      float64
 		expectedName  string
 	}{
 		{
-			name:         "simple name",
+			name:         "simple name with quantity 1",
 			cleanName:    "bracket",
+			quantity:     1.0,
 			expectedName: "Деталь \"bracket\"",
 		},
 		{
-			name:         "complex name with underscores",
-			cleanName:    "complex_part_v2",
-			expectedName: "Деталь \"complex_part_v2\"",
+			name:         "simple name with quantity 4",
+			cleanName:    "bracket",
+			quantity:     4.0,
+			expectedName: "Деталь \"bracket Q4\"",
 		},
 		{
-			name:         "name with numbers",
+			name:         "complex name with underscores and quantity 2",
+			cleanName:    "complex_part_v2",
+			quantity:     2.0,
+			expectedName: "Деталь \"complex_part_v2 Q2\"",
+		},
+		{
+			name:         "name with numbers and quantity 1",
 			cleanName:    "gear123",
+			quantity:     1.0,
 			expectedName: "Деталь \"gear123\"",
 		},
 		{
-			name:         "empty name",
+			name:         "name with numbers and quantity 10",
+			cleanName:    "gear123",
+			quantity:     10.0,
+			expectedName: "Деталь \"gear123 Q10\"",
+		},
+		{
+			name:         "empty name with quantity 1",
 			cleanName:    "",
+			quantity:     1.0,
 			expectedName: "Деталь \"\"",
 		},
 		{
-			name:         "name with special characters",
+			name:         "empty name with quantity 3",
+			cleanName:    "",
+			quantity:     3.0,
+			expectedName: "Деталь \" Q3\"",
+		},
+		{
+			name:         "name with special characters and quantity 1",
 			cleanName:    "part-model_final",
+			quantity:     1.0,
 			expectedName: "Деталь \"part-model_final\"",
+		},
+		{
+			name:         "name with special characters and quantity 5",
+			cleanName:    "part-model_final",
+			quantity:     5.0,
+			expectedName: "Деталь \"part-model_final Q5\"",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := FormatProductName(tt.cleanName)
+			result := FormatProductName(tt.cleanName, tt.quantity)
 			
 			if result != tt.expectedName {
-				t.Errorf("FormatProductName(%s) = %s, expected %s", tt.cleanName, result, tt.expectedName)
+				t.Errorf("FormatProductName(%s, %.1f) = %s, expected %s", tt.cleanName, tt.quantity, result, tt.expectedName)
 			}
 		})
 	}

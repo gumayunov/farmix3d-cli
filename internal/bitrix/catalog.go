@@ -45,9 +45,13 @@ func ParseFileName(fileName string) (cleanName string, quantity float64) {
 	return cleanName, quantity
 }
 
-// FormatProductName formats clean name into product name with quotes
-// Example: "bracket" -> "Деталь \"bracket\""
-func FormatProductName(cleanName string) string {
+// FormatProductName formats clean name into product name with quotes and quantity suffix
+// Example: "bracket" -> "Деталь \"bracket\"" (quantity 1.0)
+// Example: "bracket" -> "Деталь \"bracket Q4\"" (quantity 4.0)
+func FormatProductName(cleanName string, quantity float64) string {
+	if quantity > 1.0 {
+		return PRODUCT_NAME_PREFIX + "\"" + cleanName + " Q" + fmt.Sprintf("%.0f", quantity) + "\""
+	}
 	return PRODUCT_NAME_PREFIX + "\"" + cleanName + "\""
 }
 
@@ -418,7 +422,7 @@ func (c *Client) CreateProductsFrom3DFiles(files3D []string, sectionID string, c
 	for _, fileName := range files3D {
 		// Parse filename to extract quantity and clean name
 		cleanName, quantity := ParseFileName(fileName)
-		productName := FormatProductName(cleanName)
+		productName := FormatProductName(cleanName, quantity)
 		
 		// Check if product already exists
 		if existingProduct := c.FindProductByName(existingProducts, productName); existingProduct != nil {

@@ -174,7 +174,7 @@ func runCRMAddItems() error {
 	}
 	for i, fileName := range files3D {
 		cleanName, quantity := bitrix.ParseFileName(fileName)
-		productName := bitrix.FormatProductName(cleanName)
+		productName := bitrix.FormatProductName(cleanName, quantity)
 		if dryRun {
 			fmt.Printf("  - %s (ID: %s, Quantity: %.0f)\n", productName, products[i].ID, quantity)
 		} else {
