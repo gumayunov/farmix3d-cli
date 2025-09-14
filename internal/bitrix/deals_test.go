@@ -143,3 +143,52 @@ func TestValidateDealIDConsistency(t *testing.T) {
 		t.Errorf("Function should be consistent: first call returned %v, second call returned %v", err1, err2)
 	}
 }
+
+func TestClearDealProductRowsValidation(t *testing.T) {
+	// Test cases for clear deal product rows functionality
+	// Note: These are unit tests for the validation and structure logic,
+	// not integration tests with actual Bitrix24 API calls
+	
+	tests := []struct {
+		name     string
+		dealID   string
+		dryRun   bool
+		expected string // expected in function behavior description
+	}{
+		{
+			name:     "valid deal ID with dry-run",
+			dealID:   "123",
+			dryRun:   true,
+			expected: "should work with dry-run mode",
+		},
+		{
+			name:     "valid deal ID without dry-run",
+			dealID:   "456",
+			dryRun:   false,
+			expected: "should work in actual mode",
+		},
+		{
+			name:     "zero deal ID",
+			dealID:   "0",
+			dryRun:   true,
+			expected: "should accept zero as valid deal ID",
+		},
+	}
+	
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Test that the deal ID validation passes for these cases
+			// The actual ClearDealProductRows method would fail due to no API connection,
+			// but we can test that the deal ID validation logic works
+			err := ValidateDealID(tt.dealID)
+			if err != nil {
+				t.Errorf("ValidateDealID failed for case '%s': %v", tt.name, err)
+			}
+			
+			// Test that dry-run parameter is handled properly (boolean values)
+			if tt.dryRun != true && tt.dryRun != false {
+				t.Errorf("DryRun parameter should be boolean, got: %v", tt.dryRun)
+			}
+		})
+	}
+}

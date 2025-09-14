@@ -364,6 +364,65 @@ func (c *Client) SpreadPriceByCount(dealID string, totalAmount float64, currency
 	return nil
 }
 
+// ClearDealProductRows removes all product rows from a deal
+func (c *Client) ClearDealProductRows(dealID string, dryRun bool) error {
+	// Get existing products first to show what will be cleared
+	if dryRun {
+		fmt.Printf("[DRY RUN] Getting existing products in deal %s...\n", dealID)
+	} else {
+		fmt.Printf("Getting existing products in deal %s...\n", dealID)
+	}
+	
+	existingProducts, err := c.GetExistingProductRows(dealID)
+	if err != nil {
+		return fmt.Errorf("failed to get existing products: %v", err)
+	}
+	
+	if len(existingProducts) == 0 {
+		if dryRun {
+			fmt.Printf("[DRY RUN] Deal %s has no products to clear\n", dealID)
+		} else {
+			fmt.Printf("Deal %s has no products to clear\n", dealID)
+		}
+		return nil
+	}
+	
+	if dryRun {
+		fmt.Printf("[DRY RUN] Found %d products in deal %s:\n", len(existingProducts), dealID)
+		for i, product := range existingProducts {
+			fmt.Printf("  %d. Product ID: %s (Quantity: %.0f, Price: %.2f)\n", 
+				i+1, product.ProductID.String(), product.Quantity, product.Price)
+		}
+		fmt.Printf("[DRY RUN] Would clear all %d products from deal %s\n", len(existingProducts), dealID)
+		return nil
+	}
+	
+	fmt.Printf("Found %d products in deal %s, clearing all products...\n", len(existingProducts), dealID)
+	
+	// Clear products by setting empty rows array
+	params := map[string]interface{}{
+		"id":   dealID,
+		"rows": []interface{}{}, // Empty array clears all products
+	}
+	
+	resp, err := c.makeRequest("crm.deal.productrows.set", params)
+	if err != nil {
+		return fmt.Errorf("failed to clear products from deal: %v", err)
+	}
+	
+	var result bool
+	if err := c.parseResponse(resp, &result); err != nil {
+		return fmt.Errorf("failed to parse clear products response: %v", err)
+	}
+	
+	if !result {
+		return fmt.Errorf("failed to clear products from deal: API returned false")
+	}
+	
+	fmt.Printf("Successfully cleared %d products from deal %s\n", len(existingProducts), dealID)
+	return nil
+}
+
 // ValidateDealID checks if deal ID is a valid number
 func ValidateDealID(dealID string) error {
 	if dealID == "" {
