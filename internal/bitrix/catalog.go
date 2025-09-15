@@ -14,7 +14,7 @@ import (
 const PRODUCT_NAME_PREFIX = "Деталь "
 
 // ParseFileName extracts quantity and clean name from 3D model filename
-// Supports formats: "2x_part.stl", "3х_gear.step", "simple.stl"
+// Supports formats: "2x_part.stl", "3х_gear.step", "1x SMA Hear.stl", "simple.stl"
 // Returns clean name without extension and quantity (default 1.0)
 func ParseFileName(fileName string) (cleanName string, quantity float64) {
 	// Default quantity
@@ -23,9 +23,9 @@ func ParseFileName(fileName string) (cleanName string, quantity float64) {
 	// Remove file extension
 	nameWithoutExt := strings.TrimSuffix(fileName, filepath.Ext(fileName))
 	
-	// Regex to match quantity prefixes: 2x_, 3х_, 10x_, etc.
-	// Supports both 'x' and 'х' (cyrillic)
-	quantityRegex := regexp.MustCompile(`^(\d+)[xх]_(.+)$`)
+	// Regex to match quantity prefixes: 2x_, 3х_, 1x SMA, 10x_, etc.
+	// Supports both 'x' and 'х' (cyrillic) with underscore or space separator
+	quantityRegex := regexp.MustCompile(`^(\d+)[xх][_\s](.+)$`)
 	matches := quantityRegex.FindStringSubmatch(nameWithoutExt)
 	
 	if len(matches) == 3 {

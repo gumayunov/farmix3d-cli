@@ -72,6 +72,30 @@ func TestParseFileName(t *testing.T) {
 			expectedCleanName: "TEST",
 			expectedQuantity: 4.0,
 		},
+		{
+			name:             "file with space separator (1x SMA)",
+			fileName:         "1x SMA Hear.stl",
+			expectedCleanName: "SMA Hear",
+			expectedQuantity: 1.0,
+		},
+		{
+			name:             "file with space separator (2x ACC)",
+			fileName:         "2x Acc Bracket.stl",
+			expectedCleanName: "Acc Bracket",
+			expectedQuantity: 2.0,
+		},
+		{
+			name:             "file with cyrillic x and space",
+			fileName:         "3х Tank Mount.step",
+			expectedCleanName: "Tank Mount",
+			expectedQuantity: 3.0,
+		},
+		{
+			name:             "file with space separator and complex name",
+			fileName:         "5x Tank Mount Att Radar.stl",
+			expectedCleanName: "Tank Mount Att Radar",
+			expectedQuantity: 5.0,
+		},
 	}
 
 	for _, tt := range tests {
