@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"3mfanalyzer/internal/bitrix"
+	"farmix-cli/internal/bitrix"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -65,13 +65,13 @@ func runCRMAddItems() error {
 	// Get webhook URL from config
 	webhookURL := viper.GetString("bitrix_webhook_url")
 	if webhookURL == "" {
-		return fmt.Errorf("bitrix_webhook_url not configured. Please set it in ~/.3mfanalyzer config")
+		return fmt.Errorf("bitrix_webhook_url not configured. Please set it in ~/.farmix-cli config")
 	}
 
 	// Get catalog ID from config
 	catalogID := viper.GetString("catalog_id")
 	if catalogID == "" {
-		return fmt.Errorf("catalog_id not configured. Please set it in ~/.3mfanalyzer config")
+		return fmt.Errorf("catalog_id not configured. Please set it in ~/.farmix-cli config")
 	}
 
 	if dryRun {

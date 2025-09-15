@@ -16,7 +16,7 @@
 
 ## Примеры использования
 
-- 3mfanalyzer list path/to/file.3mf
+- farmix-cli list path/to/file.3mf
 
 ## Входные данные
 

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"3mfanalyzer/internal/slicer"
+	"farmix-cli/internal/slicer"
 
 	"github.com/spf13/cobra"
 )
@@ -33,9 +33,9 @@ var sliceCmd = &cobra.Command{
 3. Рассмотрите возможность использования графического режима
 
 Примеры использования:
-  3mfanalyzer slice --orca-path /Applications/OrcaSlicer.app/Contents/MacOS/OrcaSlicer модель.stl
-  3mfanalyzer slice --orca-path /path/to/OrcaSlicer --format json модель.stl
-  3mfanalyzer slice --orca-path /path/to/OrcaSlicer --keep-gcode модель.stl`,
+  farmix-cli slice --orca-path /Applications/OrcaSlicer.app/Contents/MacOS/OrcaSlicer модель.stl
+  farmix-cli slice --orca-path /path/to/OrcaSlicer --format json модель.stl
+  farmix-cli slice --orca-path /path/to/OrcaSlicer --keep-gcode модель.stl`,
 	Args: cobra.ExactArgs(1),
 	Run:  runSliceCommand,
 }

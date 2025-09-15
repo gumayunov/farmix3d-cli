@@ -5,8 +5,8 @@ import (
 	"os"
 	"strings"
 
-	"3mfanalyzer/internal/formatter"
-	"3mfanalyzer/internal/parser"
+	"farmix-cli/internal/formatter"
+	"farmix-cli/internal/parser"
 
 	"github.com/spf13/cobra"
 )

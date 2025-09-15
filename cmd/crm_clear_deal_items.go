@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"3mfanalyzer/internal/bitrix"
+	"farmix-cli/internal/bitrix"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -43,7 +43,7 @@ func runCRMClearDealItems() error {
 	// Get webhook URL from config
 	webhookURL := viper.GetString("bitrix_webhook_url")
 	if webhookURL == "" {
-		return fmt.Errorf("bitrix_webhook_url not configured. Please set it in ~/.3mfanalyzer config")
+		return fmt.Errorf("bitrix_webhook_url not configured. Please set it in ~/.farmix-cli config")
 	}
 
 	if clearDryRun {

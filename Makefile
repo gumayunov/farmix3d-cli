@@ -1,6 +1,6 @@
 .PHONY: build clean test test-verbose test-coverage run slice volume fmt vet build-all build-linux build-macos build-windows dist
 
-BINARY_NAME=3mfanalyzer
+BINARY_NAME=farmix-cli
 BUILD_DIR=build
 
 build:

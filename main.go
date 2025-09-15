@@ -1,6 +1,6 @@
 package main
 
-import "3mfanalyzer/cmd"
+import "farmix-cli/cmd"
 
 func main() {
 	cmd.Execute()

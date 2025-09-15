@@ -9,9 +9,9 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "3mfanalyzer",
-	Short: "A tool for analyzing 3MF files",
-	Long:  `3mfanalyzer is a command-line tool for analyzing and extracting information from 3MF files.`,
+	Use:   "farmix-cli",
+	Short: "Farmix CLI - инструмент для 3D печати и анализа файлов",
+	Long:  `farmix-cli - консольная утилита для анализа 3MF файлов, слайсинга STL моделей, расчета объемов и интеграции с Bitrix24 CRM.`,
 }
 
 func Execute() {
@@ -35,7 +35,7 @@ func initConfig() {
 	
 	// Look for config file in home directory
 	viper.AddConfigPath(home)
-	viper.SetConfigName(".3mfanalyzer")
+	viper.SetConfigName(".farmix-cli")
 	viper.SetConfigType("yaml")
 	
 	// Read config file if it exists

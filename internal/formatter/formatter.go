@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"3mfanalyzer/internal/parser"
+	"farmix-cli/internal/parser"
 )
 
 // cleanMaterialName удаляет часть в скобках из названия материала

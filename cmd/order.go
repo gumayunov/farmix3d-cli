@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"3mfanalyzer/internal/bitrix"
-	"3mfanalyzer/internal/formatter"
-	"3mfanalyzer/internal/parser"
+	"farmix-cli/internal/bitrix"
+	"farmix-cli/internal/formatter"
+	"farmix-cli/internal/parser"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -59,7 +59,7 @@ func runOrderCommand(filePath string) error {
 	// Get webhook URL from config
 	webhookURL := viper.GetString("bitrix_webhook_url")
 	if webhookURL == "" {
-		return fmt.Errorf("bitrix_webhook_url not configured. Please set it in ~/.3mfanalyzer config")
+		return fmt.Errorf("bitrix_webhook_url not configured. Please set it in ~/.farmix-cli config")
 	}
 
 	fmt.Printf("Processing 3MF file: %s\n", filePath)

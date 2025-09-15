@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"time"
 
-	"3mfanalyzer/internal/bitrix"
-	"3mfanalyzer/internal/parser"
+	"farmix-cli/internal/bitrix"
+	"farmix-cli/internal/parser"
 
 	"github.com/xuri/excelize/v2"
 )

@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"3mfanalyzer/internal/stl"
+	"farmix-cli/internal/stl"
 
 	"github.com/spf13/cobra"
 )
@@ -30,10 +30,10 @@ var volumeCmd = &cobra.Command{
 могут давать неточные результаты.
 
 Примеры использования:
-  3mfanalyzer volume модель.stl
-  3mfanalyzer volume --units cm3 --material PLA модель.stl
-  3mfanalyzer volume --format json --density 1.04 модель.stl
-  3mfanalyzer volume --show-bounds модель.stl`,
+  farmix-cli volume модель.stl
+  farmix-cli volume --units cm3 --material PLA модель.stl
+  farmix-cli volume --format json --density 1.04 модель.stl
+  farmix-cli volume --show-bounds модель.stl`,
 	Args: cobra.ExactArgs(1),
 	Run:  runVolumeCommand,
 }

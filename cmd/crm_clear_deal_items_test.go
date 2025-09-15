@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"testing"
-	"3mfanalyzer/internal/bitrix"
+	"farmix-cli/internal/bitrix"
 )
 
 func TestCrmClearDealItemsValidation(t *testing.T) {

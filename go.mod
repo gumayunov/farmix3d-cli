@@ -1,4 +1,4 @@
-module 3mfanalyzer
+module farmix-cli
 
 go 1.23.0
 

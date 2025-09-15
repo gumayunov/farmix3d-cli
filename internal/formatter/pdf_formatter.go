@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"3mfanalyzer/internal/parser"
+	"farmix-cli/internal/parser"
 
 	"github.com/go-pdf/fpdf"
 )

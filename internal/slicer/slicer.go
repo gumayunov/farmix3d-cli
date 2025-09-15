@@ -17,7 +17,7 @@ func SliceSTL(config SliceConfig) (*SliceResult, error) {
 
 	// Создаем временную директорию для вывода
 	if config.OutputDir == "" {
-		tempDir, err := os.MkdirTemp("", "3mfanalyzer_slice_*")
+		tempDir, err := os.MkdirTemp("", "farmix-cli_slice_*")
 		if err != nil {
 			return nil, fmt.Errorf("failed to create temp directory: %w", err)
 		}
