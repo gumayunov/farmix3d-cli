@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"farmix-cli/internal/bitrix"
@@ -186,6 +187,7 @@ func runCRMAddItems() error {
 }
 
 // find3DFiles finds all 3D model files (.stl and .step) in the specified directory
+// Returns files sorted alphabetically by clean name (without quantity prefix)
 func find3DFiles(dir string) ([]string, error) {
 	var files3D []string
 
@@ -209,6 +211,13 @@ func find3DFiles(dir string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Sort files alphabetically by clean name (without quantity prefix)
+	sort.Slice(files3D, func(i, j int) bool {
+		cleanI, _ := bitrix.ParseFileName(files3D[i])
+		cleanJ, _ := bitrix.ParseFileName(files3D[j])
+		return strings.ToLower(cleanI) < strings.ToLower(cleanJ)
+	})
 
 	return files3D, nil
 }
