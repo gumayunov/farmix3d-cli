@@ -35,7 +35,7 @@ This command will:
 5. Create products for each 3D model file (.stl and .step)
 6. Add products to the deal
 
-Product names will have "Деталь " prefix and include directory structure.
+Product names will have "Изделие " prefix and include directory structure.
 
 Use --dry-run flag to preview what would be created without making changes.`,
 	Run: func(cmd *cobra.Command, args []string) {

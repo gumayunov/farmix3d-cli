@@ -17,7 +17,7 @@ type FileInfo struct {
 }
 
 // PRODUCT_NAME_PREFIX is the prefix added to all product names created from 3D files
-const PRODUCT_NAME_PREFIX = "Деталь "
+const PRODUCT_NAME_PREFIX = "Изделие "
 
 // COMPANIES_FOLDER_NAME is the name of the folder where all customer companies are stored
 const COMPANIES_FOLDER_NAME = "Компании"
@@ -66,8 +66,8 @@ func formatDirPrefix(dirPath string) string {
 }
 
 // FormatProductName formats clean name into product name with quotes and quantity suffix
-// Example: "bracket" -> "Деталь \"bracket\"" (quantity 1.0)
-// Example: "bracket" -> "Деталь \"bracket Q4\"" (quantity 4.0)
+// Example: "bracket" -> "Изделие \"bracket\"" (quantity 1.0)
+// Example: "bracket" -> "Изделие \"bracket Q4\"" (quantity 4.0)
 func FormatProductName(cleanName string, quantity float64) string {
 	if quantity > 1.0 {
 		return PRODUCT_NAME_PREFIX + "\"" + cleanName + " Q" + fmt.Sprintf("%.0f", quantity) + "\""
@@ -76,9 +76,9 @@ func FormatProductName(cleanName string, quantity float64) string {
 }
 
 // FormatProductNameWithDir formats clean name with directory prefix into product name
-// Example: ("bracket", "", 1.0) -> "Деталь \"bracket\""
-// Example: ("bracket", "parts", 1.0) -> "Деталь \"parts bracket\""
-// Example: ("gear", "arms/mechanisms", 2.0) -> "Деталь \"arms.mechanisms gear Q2\""
+// Example: ("bracket", "", 1.0) -> "Изделие \"bracket\""
+// Example: ("bracket", "parts", 1.0) -> "Изделие \"parts bracket\""
+// Example: ("gear", "arms/mechanisms", 2.0) -> "Изделие \"arms.mechanisms gear Q2\""
 func FormatProductNameWithDir(cleanName string, dirPath string, quantity float64) string {
 	dirPrefix := formatDirPrefix(dirPath)
 	nameWithDir := dirPrefix + cleanName
