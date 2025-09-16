@@ -10,8 +10,17 @@ import (
 	"strings"
 )
 
+// FileInfo represents a 3D file with its directory path information
+type FileInfo struct {
+	FileName string // name of the file (e.g., "2x_gear.stl")
+	DirPath  string // relative directory path from base directory (e.g., "arms/mechanisms")
+}
+
 // PRODUCT_NAME_PREFIX is the prefix added to all product names created from 3D files
 const PRODUCT_NAME_PREFIX = "Деталь "
+
+// COMPANIES_FOLDER_NAME is the name of the folder where all customer companies are stored
+const COMPANIES_FOLDER_NAME = "Компании"
 
 // ParseFileName extracts quantity and clean name from 3D model filename
 // Supports formats: "2x_part.stl", "3х_gear.step", "1x SMA Hear.stl", "simple.stl"
@@ -45,6 +54,17 @@ func ParseFileName(fileName string) (cleanName string, quantity float64) {
 	return cleanName, quantity
 }
 
+// formatDirPrefix converts directory path to prefix for product name
+// Example: "" -> ""
+// Example: "parts" -> "parts "
+// Example: "arms/mechanisms" -> "arms.mechanisms "
+func formatDirPrefix(dirPath string) string {
+	if dirPath == "" {
+		return ""
+	}
+	return strings.ReplaceAll(dirPath, "/", ".") + " "
+}
+
 // FormatProductName formats clean name into product name with quotes and quantity suffix
 // Example: "bracket" -> "Деталь \"bracket\"" (quantity 1.0)
 // Example: "bracket" -> "Деталь \"bracket Q4\"" (quantity 4.0)
@@ -53,6 +73,20 @@ func FormatProductName(cleanName string, quantity float64) string {
 		return PRODUCT_NAME_PREFIX + "\"" + cleanName + " Q" + fmt.Sprintf("%.0f", quantity) + "\""
 	}
 	return PRODUCT_NAME_PREFIX + "\"" + cleanName + "\""
+}
+
+// FormatProductNameWithDir formats clean name with directory prefix into product name
+// Example: ("bracket", "", 1.0) -> "Деталь \"bracket\""
+// Example: ("bracket", "parts", 1.0) -> "Деталь \"parts bracket\""
+// Example: ("gear", "arms/mechanisms", 2.0) -> "Деталь \"arms.mechanisms gear Q2\""
+func FormatProductNameWithDir(cleanName string, dirPath string, quantity float64) string {
+	dirPrefix := formatDirPrefix(dirPath)
+	nameWithDir := dirPrefix + cleanName
+
+	if quantity > 1.0 {
+		return PRODUCT_NAME_PREFIX + "\"" + nameWithDir + " Q" + fmt.Sprintf("%.0f", quantity) + "\""
+	}
+	return PRODUCT_NAME_PREFIX + "\"" + nameWithDir + "\""
 }
 
 // ListSections retrieves catalog sections
@@ -333,29 +367,73 @@ func (c *Client) FindProductByName(products []Product, name string) *Product {
 	return nil
 }
 
-// EnsureCustomerSection ensures customer section exists, creates if not
-func (c *Client) EnsureCustomerSection(customerName string, catalogID string, dryRun bool) (string, error) {
+// EnsureCompaniesFolder ensures "Компании" folder exists in catalog root, creates if not
+func (c *Client) EnsureCompaniesFolder(catalogID string, dryRun bool) (string, error) {
 	sections, err := c.ListSections(catalogID)
 	if err != nil {
 		return "", fmt.Errorf("failed to list sections: %v", err)
 	}
 
-	// Look for customer section in root (parentID = "")
-	if section := c.FindSectionByName(sections, customerName, ""); section != nil {
+	// Look for companies folder in root (parentID = "")
+	if section := c.FindSectionByName(sections, COMPANIES_FOLDER_NAME, ""); section != nil {
 		if dryRun {
-			fmt.Printf("[DRY RUN] Customer section '%s' exists (ID: %d)\n", customerName, section.ID)
+			fmt.Printf("[DRY RUN] Companies folder '%s' exists (ID: %d)\n", COMPANIES_FOLDER_NAME, section.ID)
 		}
 		return fmt.Sprintf("%d", section.ID), nil
 	}
 
 	if dryRun {
-		fmt.Printf("[DRY RUN] Customer section '%s' does not exist - would create new section\n", customerName)
+		fmt.Printf("[DRY RUN] Companies folder '%s' does not exist - would create new folder\n", COMPANIES_FOLDER_NAME)
+		// Return a placeholder ID for dry run
+		return "dry-run-companies-folder-id", nil
+	}
+
+	// Create companies folder in root
+	sectionID, err := c.CreateSection(COMPANIES_FOLDER_NAME, "", catalogID)
+	if err != nil {
+		return "", fmt.Errorf("failed to create companies folder: %v", err)
+	}
+
+	return sectionID, nil
+}
+
+// EnsureCustomerSection ensures customer section exists, creates if not
+func (c *Client) EnsureCustomerSection(customerName string, catalogID string, dryRun bool) (string, error) {
+	// First, ensure companies folder exists
+	companiesFolderID, err := c.EnsureCompaniesFolder(catalogID, dryRun)
+	if err != nil {
+		return "", fmt.Errorf("failed to ensure companies folder: %v", err)
+	}
+
+	sections, err := c.ListSections(catalogID)
+	if err != nil {
+		return "", fmt.Errorf("failed to list sections: %v", err)
+	}
+
+	// Look for customer section in companies folder
+	if section := c.FindSectionByName(sections, customerName, companiesFolderID); section != nil {
+		if dryRun {
+			fmt.Printf("[DRY RUN] Customer section '%s' exists in companies folder (ID: %d)\n", customerName, section.ID)
+		}
+		return fmt.Sprintf("%d", section.ID), nil
+	}
+
+	// Also check in root for backward compatibility
+	if section := c.FindSectionByName(sections, customerName, ""); section != nil {
+		if dryRun {
+			fmt.Printf("[DRY RUN] Customer section '%s' exists in root (ID: %d) - should migrate to companies folder\n", customerName, section.ID)
+		}
+		return fmt.Sprintf("%d", section.ID), nil
+	}
+
+	if dryRun {
+		fmt.Printf("[DRY RUN] Customer section '%s' does not exist - would create in companies folder\n", customerName)
 		// Return a placeholder ID for dry run
 		return "dry-run-customer-section-id", nil
 	}
 
-	// Create customer section in root
-	sectionID, err := c.CreateSection(customerName, "", catalogID)
+	// Create customer section in companies folder
+	sectionID, err := c.CreateSection(customerName, companiesFolderID, catalogID)
 	if err != nil {
 		return "", fmt.Errorf("failed to create customer section: %v", err)
 	}
@@ -396,7 +474,7 @@ func (c *Client) EnsureProjectSection(projectName, dealID, customerSectionID, ca
 }
 
 // CreateProductsFrom3DFiles creates products for 3D model files (.stl and .step) in the specified section
-func (c *Client) CreateProductsFrom3DFiles(files3D []string, sectionID string, catalogID string, dryRun bool) ([]ProductInfo, error) {
+func (c *Client) CreateProductsFrom3DFiles(files3D []FileInfo, sectionID string, catalogID string, dryRun bool) ([]ProductInfo, error) {
 	// First, get existing products in the section
 	if dryRun {
 		fmt.Printf("[DRY RUN] Checking for existing products in section %s...\n", sectionID)
@@ -419,10 +497,10 @@ func (c *Client) CreateProductsFrom3DFiles(files3D []string, sectionID string, c
 	var createdCount int
 	var skippedCount int
 	
-	for _, fileName := range files3D {
+	for _, fileInfo := range files3D {
 		// Parse filename to extract quantity and clean name
-		cleanName, quantity := ParseFileName(fileName)
-		productName := FormatProductName(cleanName, quantity)
+		cleanName, quantity := ParseFileName(fileInfo.FileName)
+		productName := FormatProductNameWithDir(cleanName, fileInfo.DirPath, quantity)
 		
 		// Check if product already exists
 		if existingProduct := c.FindProductByName(existingProducts, productName); existingProduct != nil {

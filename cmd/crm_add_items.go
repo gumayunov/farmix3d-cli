@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/viper"
 )
 
+
 var (
 	dealID      string
 	projectName string
@@ -25,15 +26,16 @@ var crmAddItemsCmd = &cobra.Command{
 	Use:   "crm-add-items",
 	Short: "Add 3D model files (STL/STEP) as products to Bitrix24 deal",
 	Long: `Add 3D model files from a directory as products to a Bitrix24 deal.
-	
+
 This command will:
 1. Get deal information from Bitrix24
-2. Create/find customer folder in catalog
-3. Create project subfolder with name "project - deal_id"  
-4. Create products for each 3D model file (.stl and .step)
-5. Add products to the deal
+2. Create/find "Компании" folder in catalog root
+3. Create/find customer folder inside "Компании" folder
+4. Create project subfolder with name "project - deal_id"
+5. Create products for each 3D model file (.stl and .step)
+6. Add products to the deal
 
-Product names will have "Деталь " prefix and include the file extension.
+Product names will have "Деталь " prefix and include directory structure.
 
 Use --dry-run flag to preview what would be created without making changes.`,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -99,11 +101,11 @@ func runCRMAddItems() error {
 	}
 	fmt.Printf("Customer: %s\n", customerName)
 
-	// Ensure customer section exists
+	// Ensure customer section exists in companies folder
 	if dryRun {
-		fmt.Printf("[DRY RUN] Checking customer folder '%s'...\n", customerName)
+		fmt.Printf("[DRY RUN] Checking companies folder and customer '%s'...\n", customerName)
 	} else {
-		fmt.Printf("Ensuring customer folder '%s' exists...\n", customerName)
+		fmt.Printf("Ensuring companies folder and customer '%s' exist...\n", customerName)
 	}
 	customerSectionID, err := client.EnsureCustomerSection(customerName, catalogID, dryRun)
 	if err != nil {
@@ -173,9 +175,9 @@ func runCRMAddItems() error {
 	} else {
 		fmt.Println("Products created:")
 	}
-	for i, fileName := range files3D {
-		cleanName, quantity := bitrix.ParseFileName(fileName)
-		productName := bitrix.FormatProductName(cleanName, quantity)
+	for i, fileInfo := range files3D {
+		cleanName, quantity := bitrix.ParseFileName(fileInfo.FileName)
+		productName := bitrix.FormatProductNameWithDir(cleanName, fileInfo.DirPath, quantity)
 		if dryRun {
 			fmt.Printf("  - %s (ID: %s, Quantity: %.0f)\n", productName, products[i].ID, quantity)
 		} else {
@@ -187,9 +189,9 @@ func runCRMAddItems() error {
 }
 
 // find3DFiles finds all 3D model files (.stl and .step) in the specified directory
-// Returns files sorted alphabetically by clean name (without quantity prefix)
-func find3DFiles(dir string) ([]string, error) {
-	var files3D []string
+// Returns files with directory information sorted alphabetically by clean name (without quantity prefix)
+func find3DFiles(dir string) ([]bitrix.FileInfo, error) {
+	var files3D []bitrix.FileInfo
 
 	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -202,7 +204,21 @@ func find3DFiles(dir string) ([]string, error) {
 
 		lowerName := strings.ToLower(d.Name())
 		if strings.HasSuffix(lowerName, ".stl") || strings.HasSuffix(lowerName, ".step") {
-			files3D = append(files3D, d.Name())
+			// Calculate relative directory path from base directory
+			relDir, err := filepath.Rel(dir, filepath.Dir(path))
+			if err != nil {
+				return err
+			}
+
+			// If file is in the root directory, relDir will be "."
+			if relDir == "." {
+				relDir = ""
+			}
+
+			files3D = append(files3D, bitrix.FileInfo{
+				FileName: d.Name(),
+				DirPath:  relDir,
+			})
 		}
 
 		return nil
@@ -214,8 +230,8 @@ func find3DFiles(dir string) ([]string, error) {
 
 	// Sort files alphabetically by clean name (without quantity prefix)
 	sort.Slice(files3D, func(i, j int) bool {
-		cleanI, _ := bitrix.ParseFileName(files3D[i])
-		cleanJ, _ := bitrix.ParseFileName(files3D[j])
+		cleanI, _ := bitrix.ParseFileName(files3D[i].FileName)
+		cleanJ, _ := bitrix.ParseFileName(files3D[j].FileName)
 		return strings.ToLower(cleanI) < strings.ToLower(cleanJ)
 	})
 

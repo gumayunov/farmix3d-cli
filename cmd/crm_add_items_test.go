@@ -13,7 +13,7 @@ func TestFind3DFiles(t *testing.T) {
 	tests := []struct {
 		name        string
 		setupFiles  []string
-		expectedFiles []string
+		expectedFiles []bitrix.FileInfo
 		expectError bool
 	}{
 		{
@@ -26,13 +26,13 @@ func TestFind3DFiles(t *testing.T) {
 				"model.StEp",
 				"assembly.sTl",
 			},
-			expectedFiles: []string{
-				"assembly.sTl",    // cleanName: "assembly"
-				"component.step",  // cleanName: "component"
-				"gear.STEP",       // cleanName: "gear" 
-				"model.StEp",      // cleanName: "model"
-				"part1.stl",       // cleanName: "part1"
-				"part2.STL",       // cleanName: "part2"
+			expectedFiles: []bitrix.FileInfo{
+				{FileName: "assembly.sTl", DirPath: ""},    // cleanName: "assembly"
+				{FileName: "component.step", DirPath: ""},  // cleanName: "component"
+				{FileName: "gear.STEP", DirPath: ""},       // cleanName: "gear"
+				{FileName: "model.StEp", DirPath: ""},      // cleanName: "model"
+				{FileName: "part1.stl", DirPath: ""},       // cleanName: "part1"
+				{FileName: "part2.STL", DirPath: ""},       // cleanName: "part2"
 			},
 			expectError: false,
 		},
@@ -47,14 +47,14 @@ func TestFind3DFiles(t *testing.T) {
 				"3х_gear.step",   // cyrillic х
 				"1x_mount.stl",
 			},
-			expectedFiles: []string{
-				"10x_adapter.step", // cleanName: "adapter"
-				"2x_adapter.stl",   // cleanName: "adapter"
-				"5x_bracket.stl",   // cleanName: "bracket"
-				"bracket_v2.step",  // cleanName: "bracket_v2"
-				"3х_gear.step",     // cleanName: "gear"
-				"gear.stl",         // cleanName: "gear"
-				"1x_mount.stl",     // cleanName: "mount"
+			expectedFiles: []bitrix.FileInfo{
+				{FileName: "10x_adapter.step", DirPath: ""}, // cleanName: "adapter"
+				{FileName: "2x_adapter.stl", DirPath: ""},   // cleanName: "adapter"
+				{FileName: "5x_bracket.stl", DirPath: ""},   // cleanName: "bracket"
+				{FileName: "bracket_v2.step", DirPath: ""},  // cleanName: "bracket_v2"
+				{FileName: "3х_gear.step", DirPath: ""},     // cleanName: "gear"
+				{FileName: "gear.stl", DirPath: ""},         // cleanName: "gear"
+				{FileName: "1x_mount.stl", DirPath: ""},     // cleanName: "mount"
 			},
 			expectError: false,
 		},
@@ -69,9 +69,9 @@ func TestFind3DFiles(t *testing.T) {
 				"gear.step",
 				"notes.md",
 			},
-			expectedFiles: []string{
-				"gear.step",   // cleanName: "gear"
-				"part1.stl",   // cleanName: "part1"
+			expectedFiles: []bitrix.FileInfo{
+				{FileName: "gear.step", DirPath: ""},   // cleanName: "gear"
+				{FileName: "part1.stl", DirPath: ""},   // cleanName: "part1"
 			},
 			expectError: false,
 		},
@@ -84,12 +84,12 @@ func TestFind3DFiles(t *testing.T) {
 				"another/10x_component.STEP",
 				"simple_part.stl",
 			},
-			expectedFiles: []string{
-				"10x_component.STEP", // cleanName: "component"
-				"1x_gear.STL",        // cleanName: "gear"
-				"2x_part1.stl",       // cleanName: "part1"
-				"5x_part2.step",      // cleanName: "part2"
-				"simple_part.stl",    // cleanName: "simple_part"
+			expectedFiles: []bitrix.FileInfo{
+				{FileName: "10x_component.STEP", DirPath: "another"}, // cleanName: "component"
+				{FileName: "1x_gear.STL", DirPath: "deep/nested"},        // cleanName: "gear"
+				{FileName: "2x_part1.stl", DirPath: ""},       // cleanName: "part1"
+				{FileName: "5x_part2.step", DirPath: "subdir"},      // cleanName: "part2"
+				{FileName: "simple_part.stl", DirPath: ""},    // cleanName: "simple_part"
 			},
 			expectError: false,
 		},
@@ -100,13 +100,13 @@ func TestFind3DFiles(t *testing.T) {
 				"config.json",
 				"image.png",
 			},
-			expectedFiles: []string{},
+			expectedFiles: []bitrix.FileInfo{},
 			expectError: false,
 		},
 		{
 			name: "returns empty slice for empty directory",
 			setupFiles: []string{},
-			expectedFiles: []string{},
+			expectedFiles: []bitrix.FileInfo{},
 			expectError: false,
 		},
 		{
@@ -120,11 +120,11 @@ func TestFind3DFiles(t *testing.T) {
 				"10х_bracket.stl",    // cyrillic х
 				"adapter.step",
 			},
-			expectedFiles: []string{
-				"adapter.step",    // cleanName: "adapter"
-				"10х_bracket.stl", // cleanName: "bracket"
-				"2x_model.stl",    // cleanName: "model"
-				"5x_temp.step",    // cleanName: "temp"
+			expectedFiles: []bitrix.FileInfo{
+				{FileName: "adapter.step", DirPath: ""},    // cleanName: "adapter"
+				{FileName: "10х_bracket.stl", DirPath: ""}, // cleanName: "bracket"
+				{FileName: "2x_model.stl", DirPath: ""},    // cleanName: "model"
+				{FileName: "5x_temp.step", DirPath: ""},    // cleanName: "temp"
 			},
 			expectError: false,
 		},
@@ -227,7 +227,7 @@ func TestFind3DFilesSortedByCleanName(t *testing.T) {
 	tests := []struct {
 		name          string
 		setupFiles    []string
-		expectedOrder []string
+		expectedOrder []bitrix.FileInfo
 	}{
 		{
 			name: "sorts files by clean name without quantity prefix",
@@ -239,13 +239,13 @@ func TestFind3DFilesSortedByCleanName(t *testing.T) {
 				"gear.step",
 				"3x_gear.step",
 			},
-			expectedOrder: []string{
-				"10x_adapter.stl",  // cleanName: "adapter"
-				"2x_adapter.stl",   // cleanName: "adapter" 
-				"5x_bracket.stl",   // cleanName: "bracket"
-				"bracket_v2.stl",   // cleanName: "bracket_v2"
-				"3x_gear.step",     // cleanName: "gear"
-				"gear.step",        // cleanName: "gear"
+			expectedOrder: []bitrix.FileInfo{
+				{FileName: "10x_adapter.stl", DirPath: ""},  // cleanName: "adapter"
+				{FileName: "2x_adapter.stl", DirPath: ""},   // cleanName: "adapter"
+				{FileName: "5x_bracket.stl", DirPath: ""},   // cleanName: "bracket"
+				{FileName: "bracket_v2.stl", DirPath: ""},   // cleanName: "bracket_v2"
+				{FileName: "3x_gear.step", DirPath: ""},     // cleanName: "gear"
+				{FileName: "gear.step", DirPath: ""},        // cleanName: "gear"
 			},
 		},
 		{
@@ -256,11 +256,11 @@ func TestFind3DFilesSortedByCleanName(t *testing.T) {
 				"adapter_v2.step",
 				"5x_mount.stl",
 			},
-			expectedOrder: []string{
-				"2x_ADAPTER.stl",   // cleanName: "ADAPTER" 
-				"adapter_v2.step",  // cleanName: "adapter_v2"
-				"5x_mount.stl",     // cleanName: "mount"
-				"Mount.STL",        // cleanName: "Mount"
+			expectedOrder: []bitrix.FileInfo{
+				{FileName: "2x_ADAPTER.stl", DirPath: ""},   // cleanName: "ADAPTER"
+				{FileName: "adapter_v2.step", DirPath: ""},  // cleanName: "adapter_v2"
+				{FileName: "5x_mount.stl", DirPath: ""},     // cleanName: "mount"
+				{FileName: "Mount.STL", DirPath: ""},        // cleanName: "Mount"
 			},
 		},
 		{
@@ -270,10 +270,10 @@ func TestFind3DFilesSortedByCleanName(t *testing.T) {
 				"alpha.step",
 				"beta.stl",
 			},
-			expectedOrder: []string{
-				"alpha.step",  // cleanName: "alpha"
-				"beta.stl",    // cleanName: "beta" 
-				"zebra.stl",   // cleanName: "zebra"
+			expectedOrder: []bitrix.FileInfo{
+				{FileName: "alpha.step", DirPath: ""},  // cleanName: "alpha"
+				{FileName: "beta.stl", DirPath: ""},    // cleanName: "beta"
+				{FileName: "zebra.stl", DirPath: ""},   // cleanName: "zebra"
 			},
 		},
 	}
@@ -309,9 +309,9 @@ func TestFind3DFilesSortedByCleanName(t *testing.T) {
 				
 				// Debug information to understand sorting
 				t.Log("Debug info:")
-				for i, fileName := range result {
-					cleanName, _ := bitrix.ParseFileName(fileName)
-					t.Logf("  [%d] %s -> cleanName: '%s'", i, fileName, cleanName)
+				for i, fileInfo := range result {
+					cleanName, _ := bitrix.ParseFileName(fileInfo.FileName)
+					t.Logf("  [%d] %s (dir: %s) -> cleanName: '%s'", i, fileInfo.FileName, fileInfo.DirPath, cleanName)
 				}
 			}
 		})

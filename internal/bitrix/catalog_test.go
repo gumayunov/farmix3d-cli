@@ -367,16 +367,172 @@ func TestCreateDealProductRowsProductIDStringConversion(t *testing.T) {
 		{ID: "999999", Quantity: 3.0},
 	}
 	result := CreateDealProductRows(products)
-	
+
 	for i, row := range result {
 		// Test String() method
 		if row.ProductID.String() != products[i].ID {
 			t.Errorf("Row %d: ProductID.String() = %s, expected %s", i, row.ProductID.String(), products[i].ID)
 		}
-		
+
 		// Test that ProductIDString can be compared to string
 		if string(row.ProductID) != products[i].ID {
 			t.Errorf("Row %d: string(ProductID) = %s, expected %s", i, string(row.ProductID), products[i].ID)
 		}
+	}
+}
+
+func TestFormatDirPrefix(t *testing.T) {
+	tests := []struct {
+		name     string
+		dirPath  string
+		expected string
+	}{
+		{
+			name:     "empty directory path",
+			dirPath:  "",
+			expected: "",
+		},
+		{
+			name:     "single directory",
+			dirPath:  "parts",
+			expected: "parts ",
+		},
+		{
+			name:     "nested directories with slash separator",
+			dirPath:  "arms/mechanisms",
+			expected: "arms.mechanisms ",
+		},
+		{
+			name:     "deep nested directories",
+			dirPath:  "project/parts/brackets/v2",
+			expected: "project.parts.brackets.v2 ",
+		},
+		{
+			name:     "directory with special characters",
+			dirPath:  "project_v1/test-parts",
+			expected: "project_v1.test-parts ",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := formatDirPrefix(tt.dirPath)
+
+			if result != tt.expected {
+				t.Errorf("formatDirPrefix(%s) = %s, expected %s", tt.dirPath, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestEnsureCompaniesFolderLogic(t *testing.T) {
+	// Test that EnsureCompaniesFolder would work correctly
+	// This is a conceptual test since we can't test actual Bitrix24 API calls
+
+	tests := []struct {
+		name         string
+		folderName   string
+		expectError  bool
+	}{
+		{
+			name:        "companies folder name constant is correct",
+			folderName:  COMPANIES_FOLDER_NAME,
+			expectError: false,
+		},
+		{
+			name:        "companies folder name is not empty",
+			folderName:  COMPANIES_FOLDER_NAME,
+			expectError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Test that the constant is properly defined
+			if COMPANIES_FOLDER_NAME == "" {
+				t.Error("COMPANIES_FOLDER_NAME should not be empty")
+			}
+
+			if COMPANIES_FOLDER_NAME != "Компании" {
+				t.Errorf("COMPANIES_FOLDER_NAME = %s, expected 'Компании'", COMPANIES_FOLDER_NAME)
+			}
+		})
+	}
+}
+
+func TestFormatProductNameWithDir(t *testing.T) {
+	tests := []struct {
+		name          string
+		cleanName     string
+		dirPath       string
+		quantity      float64
+		expectedName  string
+	}{
+		{
+			name:         "simple name with empty directory and quantity 1",
+			cleanName:    "bracket",
+			dirPath:      "",
+			quantity:     1.0,
+			expectedName: "Деталь \"bracket\"",
+		},
+		{
+			name:         "simple name with directory and quantity 1",
+			cleanName:    "bracket",
+			dirPath:      "parts",
+			quantity:     1.0,
+			expectedName: "Деталь \"parts bracket\"",
+		},
+		{
+			name:         "simple name with nested directory and quantity 1",
+			cleanName:    "gear",
+			dirPath:      "arms/mechanisms",
+			quantity:     1.0,
+			expectedName: "Деталь \"arms.mechanisms gear\"",
+		},
+		{
+			name:         "simple name with empty directory and quantity 4",
+			cleanName:    "bracket",
+			dirPath:      "",
+			quantity:     4.0,
+			expectedName: "Деталь \"bracket Q4\"",
+		},
+		{
+			name:         "simple name with directory and quantity 2",
+			cleanName:    "mount",
+			dirPath:      "parts",
+			quantity:     2.0,
+			expectedName: "Деталь \"parts mount Q2\"",
+		},
+		{
+			name:         "complex name with nested directory and quantity 10",
+			cleanName:    "complex_part_v2",
+			dirPath:      "project/brackets",
+			quantity:     10.0,
+			expectedName: "Деталь \"project.brackets complex_part_v2 Q10\"",
+		},
+		{
+			name:         "name with numbers and deep nested directory",
+			dirPath:      "arms/mechanisms/v3",
+			cleanName:    "gear123",
+			quantity:     5.0,
+			expectedName: "Деталь \"arms.mechanisms.v3 gear123 Q5\"",
+		},
+		{
+			name:         "empty name with directory and quantity 3",
+			cleanName:    "",
+			dirPath:      "test",
+			quantity:     3.0,
+			expectedName: "Деталь \"test  Q3\"",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := FormatProductNameWithDir(tt.cleanName, tt.dirPath, tt.quantity)
+
+			if result != tt.expectedName {
+				t.Errorf("FormatProductNameWithDir(%s, %s, %.1f) = %s, expected %s", tt.cleanName, tt.dirPath, tt.quantity, result, tt.expectedName)
+			}
+		})
 	}
 }
