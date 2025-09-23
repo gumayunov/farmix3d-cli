@@ -155,3 +155,77 @@ type ListSectionsResponse struct {
 	} `json:"result"`
 	Total int `json:"total"`
 }
+
+// StoreDocument represents a warehouse document
+type StoreDocument struct {
+	ID           string `json:"id"`
+	DocType      string `json:"docType"`      // 'S' for receipt
+	Currency     string `json:"currency"`
+	DateDocument string `json:"dateDocument"`
+	Commentary   string `json:"commentary"`
+	ResponsibleID string `json:"responsibleId"`
+}
+
+// StoreDocumentElement represents an element in a warehouse document
+type StoreDocumentElement struct {
+	DocID           string  `json:"docId"`
+	StoreFrom       int     `json:"storeFrom"`       // 0 for receipt
+	StoreTo         string  `json:"storeTo"`         // Target warehouse ID
+	ElementID       string  `json:"elementId"`       // Product ID
+	Amount          float64 `json:"amount"`          // Quantity
+	PurchasingPrice float64 `json:"purchasingPrice"` // Price per unit
+}
+
+// StoreDocumentModeResponse represents the response from catalog.document.mode.status
+// The API returns result as a direct string value, not as an object
+type StoreDocumentModeResponse string
+
+// CreateStoreDocumentResponse represents the response from catalog.document.add
+// The API returns result as a direct string value (document ID)
+type CreateStoreDocumentResponse string
+
+// AddStoreDocumentElementResponse represents the response from catalog.document.element.add
+// The API returns result as a direct string value (element ID)
+type AddStoreDocumentElementResponse string
+
+// ConfirmStoreDocumentResponse represents the response from catalog.document.confirm
+// The API returns result as a direct boolean value
+type ConfirmStoreDocumentResponse bool
+
+// StoreImage represents an image in Bitrix24
+type StoreImage struct {
+	ID  int    `json:"id"`
+	URL string `json:"url"`
+}
+
+// Store represents a warehouse in Bitrix24
+type Store struct {
+	ID          int         `json:"id"`
+	Title       string      `json:"title"`
+	Active      string      `json:"active"`      // "Y" or "N"
+	Code        *string     `json:"code"`        // Store code (can be null)
+	Sort        int         `json:"sort"`        // Sort order
+	Address     string      `json:"address"`     // Store address
+	Description *string     `json:"description"` // Store description (can be null)
+	ImageID     *StoreImage `json:"imageId"`     // Image info (can be null)
+	Phone       *string     `json:"phone"`       // Phone number (can be null)
+	Schedule    *string     `json:"schedule"`    // Working schedule (can be null)
+	Email       *string     `json:"email"`       // Email (can be null)
+	Coords      *string     `json:"coords"`      // Coordinates (can be null)
+	SiteID      *string     `json:"siteId"`      // Site ID (can be null)
+	IssuingCenter *string   `json:"issuingCenter"` // "Y" or "N" (can be null)
+	ShippingCenter *string  `json:"shippingCenter"` // "Y" or "N" (can be null)
+}
+
+// GetStoreResponse represents the response from catalog.store.get
+type GetStoreResponse struct {
+	Result Store `json:"result"`
+}
+
+// ListStoresResponse represents the response from catalog.store.list
+type ListStoresResponse struct {
+	Result struct {
+		Stores []Store `json:"stores"`
+	} `json:"result"`
+	Total int `json:"total"`
+}

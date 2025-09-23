@@ -159,6 +159,32 @@ func (c *Client) makeRequest(method string, params map[string]interface{}) (*htt
 	return resp, nil
 }
 
+// makeJSONRequest makes an HTTP request to Bitrix24 API with JSON payload
+func (c *Client) makeJSONRequest(method string, params map[string]interface{}) (*http.Response, error) {
+	requestURL := fmt.Sprintf("%s/%s", c.webhookURL, method)
+
+	// Prepare JSON payload
+	jsonPayload, err := json.Marshal(params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal params: %v", err)
+	}
+
+	req, err := http.NewRequest("POST", requestURL, bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %v", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+
 // ParseResponse parses HTTP response into a generic BitrixResponse (public for testing)
 func (c *Client) ParseResponse(resp *http.Response, target interface{}) error {
 	return c.parseResponse(resp, target)

@@ -134,6 +134,15 @@ func runCRMAddItems() error {
 		return fmt.Errorf("no 3D files (STL/STEP) found in directory: %s", stlDir)
 	}
 
+	// Sort files alphabetically by their final product names (including directory prefixes)
+	sort.Slice(files3D, func(i, j int) bool {
+		cleanI, quantityI := bitrix.ParseFileName(files3D[i].FileName)
+		cleanJ, quantityJ := bitrix.ParseFileName(files3D[j].FileName)
+		nameI := bitrix.FormatProductNameWithDir(cleanI, files3D[i].DirPath, quantityI)
+		nameJ := bitrix.FormatProductNameWithDir(cleanJ, files3D[j].DirPath, quantityJ)
+		return strings.ToLower(nameI) < strings.ToLower(nameJ)
+	})
+
 	fmt.Printf("Found %d 3D files\n", len(files3D))
 
 	// Create products for 3D files
@@ -189,7 +198,7 @@ func runCRMAddItems() error {
 }
 
 // find3DFiles finds all 3D model files (.stl and .step) in the specified directory
-// Returns files with directory information sorted alphabetically by clean name (without quantity prefix)
+// Returns files with directory information in the order they are discovered
 func find3DFiles(dir string) ([]bitrix.FileInfo, error) {
 	var files3D []bitrix.FileInfo
 
@@ -227,13 +236,6 @@ func find3DFiles(dir string) ([]bitrix.FileInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	// Sort files alphabetically by clean name (without quantity prefix)
-	sort.Slice(files3D, func(i, j int) bool {
-		cleanI, _ := bitrix.ParseFileName(files3D[i].FileName)
-		cleanJ, _ := bitrix.ParseFileName(files3D[j].FileName)
-		return strings.ToLower(cleanI) < strings.ToLower(cleanJ)
-	})
 
 	return files3D, nil
 }

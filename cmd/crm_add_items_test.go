@@ -170,7 +170,7 @@ func TestFind3DFiles(t *testing.T) {
 				return
 			}
 
-			// Function now returns files sorted by clean name, so expected order matters
+			// Function now returns files in discovery order, so we check contents without order
 			expected := tt.expectedFiles
 
 			// Compare results - handle empty slice case
@@ -178,9 +178,27 @@ func TestFind3DFiles(t *testing.T) {
 				// Both empty - test passes
 				return
 			}
-			
-			if !reflect.DeepEqual(result, expected) {
-				t.Errorf("Expected files %v, but got %v", expected, result)
+
+			// Check that all expected files are present (order doesn't matter)
+			if len(result) != len(expected) {
+				t.Errorf("Expected %d files, but got %d files", len(expected), len(result))
+				return
+			}
+
+			// Convert both slices to maps for easy comparison
+			expectedMap := make(map[string]string)
+			resultMap := make(map[string]string)
+
+			for _, file := range expected {
+				expectedMap[file.FileName] = file.DirPath
+			}
+
+			for _, file := range result {
+				resultMap[file.FileName] = file.DirPath
+			}
+
+			if !reflect.DeepEqual(resultMap, expectedMap) {
+				t.Errorf("Expected files %v, but got %v", expectedMap, resultMap)
 			}
 		})
 	}
@@ -223,97 +241,3 @@ func TestFind3DFilesPermissionDenied(t *testing.T) {
 	}
 }
 
-func TestFind3DFilesSortedByCleanName(t *testing.T) {
-	tests := []struct {
-		name          string
-		setupFiles    []string
-		expectedOrder []bitrix.FileInfo
-	}{
-		{
-			name: "sorts files by clean name without quantity prefix",
-			setupFiles: []string{
-				"5x_bracket.stl",
-				"2x_adapter.stl", 
-				"bracket_v2.stl",
-				"10x_adapter.stl",
-				"gear.step",
-				"3x_gear.step",
-			},
-			expectedOrder: []bitrix.FileInfo{
-				{FileName: "10x_adapter.stl", DirPath: ""},  // cleanName: "adapter"
-				{FileName: "2x_adapter.stl", DirPath: ""},   // cleanName: "adapter"
-				{FileName: "5x_bracket.stl", DirPath: ""},   // cleanName: "bracket"
-				{FileName: "bracket_v2.stl", DirPath: ""},   // cleanName: "bracket_v2"
-				{FileName: "3x_gear.step", DirPath: ""},     // cleanName: "gear"
-				{FileName: "gear.step", DirPath: ""},        // cleanName: "gear"
-			},
-		},
-		{
-			name: "handles case insensitive sorting",
-			setupFiles: []string{
-				"Mount.STL",
-				"2x_ADAPTER.stl",
-				"adapter_v2.step",
-				"5x_mount.stl",
-			},
-			expectedOrder: []bitrix.FileInfo{
-				{FileName: "2x_ADAPTER.stl", DirPath: ""},   // cleanName: "ADAPTER"
-				{FileName: "adapter_v2.step", DirPath: ""},  // cleanName: "adapter_v2"
-				{FileName: "5x_mount.stl", DirPath: ""},     // cleanName: "mount"
-				{FileName: "Mount.STL", DirPath: ""},        // cleanName: "Mount"
-			},
-		},
-		{
-			name: "files without quantity prefix",
-			setupFiles: []string{
-				"zebra.stl",
-				"alpha.step",
-				"beta.stl",
-			},
-			expectedOrder: []bitrix.FileInfo{
-				{FileName: "alpha.step", DirPath: ""},  // cleanName: "alpha"
-				{FileName: "beta.stl", DirPath: ""},    // cleanName: "beta"
-				{FileName: "zebra.stl", DirPath: ""},   // cleanName: "zebra"
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Create temporary directory
-			tempDir, err := os.MkdirTemp("", "test_sort3d_*")
-			if err != nil {
-				t.Fatalf("Failed to create temp dir: %v", err)
-			}
-			defer os.RemoveAll(tempDir)
-
-			// Create test files
-			for _, file := range tt.setupFiles {
-				fullPath := filepath.Join(tempDir, file)
-				f, err := os.Create(fullPath)
-				if err != nil {
-					t.Fatalf("Failed to create file %s: %v", fullPath, err)
-				}
-				f.Close()
-			}
-
-			// Test the function
-			result, err := find3DFiles(tempDir)
-			if err != nil {
-				t.Fatalf("Unexpected error: %v", err)
-			}
-
-			// Check that files are returned in the expected sorted order
-			if !reflect.DeepEqual(result, tt.expectedOrder) {
-				t.Errorf("Expected order %v, but got %v", tt.expectedOrder, result)
-				
-				// Debug information to understand sorting
-				t.Log("Debug info:")
-				for i, fileInfo := range result {
-					cleanName, _ := bitrix.ParseFileName(fileInfo.FileName)
-					t.Logf("  [%d] %s (dir: %s) -> cleanName: '%s'", i, fileInfo.FileName, fileInfo.DirPath, cleanName)
-				}
-			}
-		})
-	}
-}

@@ -1,6 +1,3 @@
-# Пример конфигурационного файла для Farmix CLI
-# Скопируйте этот файл в ~/.farmix-cli и настройте под ваши нужды
-
 # URL вебхука Bitrix24 для интеграции с CRM
 # Получить можно в разделе "Разработчикам" -> "Другое" -> "Входящий вебхук"
 bitrix_webhook_url: "https://your-domain.bitrix24.ru/rest/1/your-webhook-code/"
@@ -9,5 +6,10 @@ bitrix_webhook_url: "https://your-domain.bitrix24.ru/rest/1/your-webhook-code/"
 # Можно найти в разделе "Магазин" -> "Каталог товаров" -> URL содержит IBLOCK_ID
 # Или через API запрос: /rest/catalog.catalog.list
 catalog_id: "23"
+
+# ID склада по умолчанию для команды crm-add-store
+# Можно найти в разделе "Магазин" -> "Склады" -> список складов
+# Или через API запрос: /rest/catalog.store.list
+store_id: "1"
 
 # Другие настройки можно добавить здесь по мере необходимости
