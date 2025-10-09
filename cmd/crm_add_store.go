@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"time"
 
 	"farmix-cli/internal/bitrix"
 
@@ -29,9 +28,10 @@ var crmAddStoreCmd = &cobra.Command{
 3. Получит и проверит информацию о складе (название, статус активности)
 4. Создаст документ прихода (тип документа 'S' - оприходование)
 5. Добавит все товары из сделки в документ с количествами из сделки
-6. Проведет документ для обновления складских остатков
+6. Оставит документ в статусе черновика
 
-Документ будет использовать ID товаров для точности и будет автоматически проведен.
+Документ будет использовать ID товаров для точности и останется в статусе черновика.
+Для обновления складских остатков документ нужно провести вручную в Bitrix24.
 
 Используйте флаг --dry-run для предварительного просмотра без внесения изменений.`,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -168,8 +168,6 @@ func runCRMAddStore() error {
 	}
 	fmt.Printf("Создан документ с ID: %s\n", documentID)
 
-	// Document created with status "N" (not confirmed) to allow adding elements
-
 	// Add products to document
 	fmt.Println("Добавление товаров в документ...")
 	fmt.Printf("Добавляем товары в документ ID: %s на склад ID: %s\n", documentID, addStoreStoreID)
@@ -179,18 +177,12 @@ func runCRMAddStore() error {
 	}
 	fmt.Printf("Добавлено %d товаров в документ\n", len(products))
 
-	// Confirm document
-	fmt.Println("Проведение документа...")
-	err = client.ConfirmStoreDocument(documentID)
-	if err != nil {
-		return fmt.Errorf("не удалось провести документ: %v", err)
-	}
-
-	fmt.Printf("Успешно создан и проведен документ прихода %s\n", documentID)
-	fmt.Printf("Товары добавлены на склад (ID склада: %s):\n", addStoreStoreID)
+	fmt.Printf("Успешно создан документ прихода %s (черновик)\n", documentID)
+	fmt.Printf("Товары добавлены в документ (ID склада: %s):\n", addStoreStoreID)
 	for _, product := range products {
 		fmt.Printf("  - ID товара: %s, Количество: %.2f\n", product.ProductID.String(), product.Quantity)
 	}
+	fmt.Println("Документ остается в статусе черновика. Проведите его вручную в Bitrix24 для обновления остатков.")
 
 	return nil
 }

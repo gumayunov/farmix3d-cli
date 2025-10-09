@@ -70,7 +70,9 @@ func (c *Client) CreateStoreDocument(deal *Deal, currency, commentary string) (s
 		"currency":     currency,
 		"dateDocument": currentDate,
 		"commentary":   commentary,
-		"status":       "N",        // Status: N = not confirmed, allows adding elements
+		"title":        fmt.Sprintf("Оприходование изделий по сделке %s", deal.ID), // Document title (will be updated with ID)
+		"UF_CAT_STORE_DOCUMENT_S_1758649547": deal.ID, // Link to deal (custom field)
+		// Do not set status field - let API use default status
 	}
 
 	params := map[string]interface{}{
@@ -165,6 +167,7 @@ func (c *Client) CreateStoreDocument(deal *Deal, currency, commentary string) (s
 	return documentID, nil
 }
 
+
 // AddElementsToStoreDocument adds product elements to a warehouse document
 func (c *Client) AddElementsToStoreDocument(documentID string, products []DealProductRow, storeID string) error {
 	for _, product := range products {
@@ -191,22 +194,23 @@ func (c *Client) addSingleElementToDocument(documentID string, product DealProdu
 	}
 
 	fields := map[string]interface{}{
-		"DOC_ID":           docID,                      // Document ID as number
-		"STORE_FROM":       0,                          // 0 for receipt documents
-		"STORE_TO":         storeToID,                  // Target warehouse ID as number
-		"ELEMENT_ID":       product.ProductID.String(), // Product ID
-		"AMOUNT":           product.Quantity,           // Quantity
-		"PURCHASING_PRICE": product.Price,              // Price per unit
+		"docId":          docID,                      // Document ID as number
+		"storeFrom":      0,                          // 0 for receipt documents
+		"storeTo":        storeToID,                  // Target warehouse ID as number
+		"elementId":      product.ProductID.String(), // Product ID
+		"amount":         product.Quantity,           // Quantity
+		"purchasingPrice": 0,                         // Purchasing price = 0
+		"sellingPrice":   product.Price,              // Selling price from deal
 	}
 
-	fmt.Printf("DEBUG: Добавляем товар %s (количество: %.2f) в документ %v на склад %v\n",
-		product.ProductID.String(), product.Quantity, docID, storeToID)
+	fmt.Printf("DEBUG: Добавляем товар %s (количество: %.2f, цена продажи: %.2f) в документ %v на склад %v\n",
+		product.ProductID.String(), product.Quantity, product.Price, docID, storeToID)
 
 	params := map[string]interface{}{
 		"fields": fields,
 	}
 
-	resp, err := c.makeJSONRequest("catalog.document.element.add", params)
+	resp, err := c.makeRequest("catalog.document.element.add", params)
 	if err != nil {
 		return fmt.Errorf("failed to add element to document: %v", err)
 	}
@@ -218,7 +222,7 @@ func (c *Client) addSingleElementToDocument(documentID string, product DealProdu
 		return fmt.Errorf("failed to read response body: %v", err)
 	}
 
-	// Parse response manually
+	// Parse response manually since structure changed
 	var rawResponse map[string]interface{}
 	if err := json.Unmarshal(body, &rawResponse); err != nil {
 		return fmt.Errorf("failed to unmarshal raw response: %v", err)
