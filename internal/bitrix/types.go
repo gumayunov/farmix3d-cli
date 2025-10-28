@@ -229,3 +229,30 @@ type ListStoresResponse struct {
 	} `json:"result"`
 	Total int `json:"total"`
 }
+
+// DealReportRow represents a deal row in the report with custom fields
+type DealReportRow struct {
+	ID              string      `json:"ID"`
+	Title           string      `json:"TITLE"`
+	DateCreate      string      `json:"DATE_CREATE"`
+	MachineCost     interface{} `json:"machine_cost"`     // Custom field - can be string or number
+	HumanCost       interface{} `json:"human_cost"`       // Custom field - can be string or number
+	MaterialCost    interface{} `json:"material_cost"`    // Custom field - can be string or number
+	TotalCost       interface{} `json:"total_cost"`       // Custom field - can be string or number
+	PaymentReceived interface{} `json:"payment_received"` // Custom field - can be string or number
+}
+
+// ListDealsResponse represents the response from crm.deal.list
+type ListDealsResponse struct {
+	Result []map[string]interface{} `json:"result"` // Array of deals with dynamic fields
+	Total  int                      `json:"total"`
+}
+
+// ReportCustomFields contains the field codes for custom fields in reports
+type ReportCustomFields struct {
+	MachineCost     string `json:"machine_cost"`
+	HumanCost       string `json:"human_cost"`
+	MaterialCost    string `json:"material_cost"`
+	TotalCost       string `json:"total_cost"`
+	PaymentReceived string `json:"payment_received"`
+}

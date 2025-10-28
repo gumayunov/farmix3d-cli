@@ -215,13 +215,13 @@ func TestGetStoreValidation(t *testing.T) {
 
 func TestStoreStructure(t *testing.T) {
 	store := Store{
-		ID:     "1",
+		ID:     1,
 		Title:  "Основной склад",
 		Active: "Y",
 	}
 
-	if store.ID != "1" {
-		t.Errorf("Expected store ID '1', got '%s'", store.ID)
+	if store.ID != 1 {
+		t.Errorf("Expected store ID 1, got %d", store.ID)
 	}
 
 	if store.Title != "Основной склад" {

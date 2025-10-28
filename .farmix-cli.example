@@ -12,4 +12,19 @@ catalog_id: "23"
 # Или через API запрос: /rest/catalog.store.list
 store_id: "1"
 
+# Настройки для команды crm-report
+# Коды кастомных полей сделок для отчета
+# Коды можно найти в Bitrix24: CRM -> Настройки -> Поля -> Сделки
+# Формат кода: UF_CRM_XXXXXXXXXX (обычно 10 цифр после UF_CRM_)
+report_custom_fields:
+  machine_cost: "UF_CRM_XXXXX"       # Рассчетная стоимость м/ч
+  human_cost: "UF_CRM_XXXXX"         # Рассчетная стоимость ч/ч
+  material_cost: "UF_CRM_XXXXX"      # Рассчетная стоимость материала
+  total_cost: "UF_CRM_XXXXX"         # Итого стоимость изготовления
+  payment_received: "UF_CRM_XXXXX"   # Оплата получена
+
+# Статусы сделок, которые исключаются из отчета (финальные)
+# По умолчанию: WON (Успешно реализовано), LOST (Проиграно)
+report_excluded_statuses: ["WON", "LOST"]
+
 # Другие настройки можно добавить здесь по мере необходимости

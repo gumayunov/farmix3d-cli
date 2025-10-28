@@ -81,6 +81,20 @@ func (c *Client) makeRequest(method string, params map[string]interface{}) (*htt
 						formData.Set(fmt.Sprintf("fields[%s]", fieldKey), string(jsonValue))
 					}
 				}
+			} else if key == "order" {
+				// For order, use Bitrix24 format: order[FIELD]=value
+				for orderKey, orderValue := range v {
+					if str, ok := orderValue.(string); ok {
+						formData.Set(fmt.Sprintf("order[%s]", orderKey), str)
+					} else {
+						// Convert other types to string
+						jsonValue, err := json.Marshal(orderValue)
+						if err != nil {
+							return nil, fmt.Errorf("failed to marshal order value %s: %v", orderKey, err)
+						}
+						formData.Set(fmt.Sprintf("order[%s]", orderKey), string(jsonValue))
+					}
+				}
 			} else {
 				// For other nested objects, encode as JSON
 				jsonValue, err := json.Marshal(v)

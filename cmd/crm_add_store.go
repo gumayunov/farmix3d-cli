@@ -156,7 +156,7 @@ func runCRMAddStore() error {
 				product.ProductID.String(), product.Quantity, product.Price, addStoreCurrency)
 		}
 		fmt.Printf("[ТЕСТОВЫЙ РЕЖИМ] Будет создан документ прихода с %d товарами\n", len(products))
-		fmt.Printf("[ТЕСТОВЫЙ РЕЖИМ] Товары будут добавлены на склад: %s (ID: %s)\n", store.Title, store.ID)
+		fmt.Printf("[ТЕСТОВЫЙ РЕЖИМ] Товары будут добавлены на склад: %s (ID: %d)\n", store.Title, store.ID)
 		return nil
 	}
 
