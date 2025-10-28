@@ -239,6 +239,7 @@ type DealReportRow struct {
 	HumanCost       interface{} `json:"human_cost"`       // Custom field - can be string or number
 	MaterialCost    interface{} `json:"material_cost"`    // Custom field - can be string or number
 	TotalCost       interface{} `json:"total_cost"`       // Custom field - can be string or number
+	Opportunity     interface{} `json:"OPPORTUNITY"`      // Deal amount - can be string or number
 	PaymentReceived interface{} `json:"payment_received"` // Custom field - can be string or number
 }
 

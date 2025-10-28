@@ -25,7 +25,8 @@ func FormatReportAsTable(deals []bitrix.DealReportRow, writer io.Writer) error {
 		"М/ч (₽)",
 		"Ч/ч (₽)",
 		"Материал (₽)",
-		"Итого (₽)",
+		"Итог. стоимость (₽)",
+		"Итоговая цена (₽)",
 		"Оплата",
 	}
 
@@ -46,6 +47,7 @@ func FormatReportAsTable(deals []bitrix.DealReportRow, writer io.Writer) error {
 			bitrix.ParseCustomFieldValue(deal.HumanCost),
 			bitrix.ParseCustomFieldValue(deal.MaterialCost),
 			bitrix.ParseCustomFieldValue(deal.TotalCost),
+			bitrix.ParseCustomFieldValue(deal.Opportunity),
 			bitrix.ParseCustomFieldValue(deal.PaymentReceived),
 		}
 	}
@@ -101,7 +103,8 @@ func FormatReportAsCSV(deals []bitrix.DealReportRow, writer io.Writer) error {
 		"Рассчетная стоимость м/ч",
 		"Рассчетная стоимость ч/ч",
 		"Рассчетная стоимость материала",
-		"Итого стоимость изготовления",
+		"Итоговая стоимость изготовления",
+		"Итоговая цена",
 		"Оплата получена",
 	}
 	if err := csvWriter.Write(headers); err != nil {
@@ -124,6 +127,7 @@ func FormatReportAsCSV(deals []bitrix.DealReportRow, writer io.Writer) error {
 			bitrix.ParseCustomFieldValue(deal.HumanCost),
 			bitrix.ParseCustomFieldValue(deal.MaterialCost),
 			bitrix.ParseCustomFieldValue(deal.TotalCost),
+			bitrix.ParseCustomFieldValue(deal.Opportunity),
 			bitrix.ParseCustomFieldValue(deal.PaymentReceived),
 		}
 		if err := csvWriter.Write(record); err != nil {

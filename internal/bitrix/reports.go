@@ -14,6 +14,7 @@ func (c *Client) ListDealsWithCustomFields(customFields ReportCustomFields, excl
 		"ID",
 		"TITLE",
 		"DATE_CREATE",
+		"OPPORTUNITY",
 	}
 
 	// Add custom fields to select if they are configured
@@ -86,6 +87,10 @@ func (c *Client) ListDealsWithCustomFields(customFields ReportCustomFields, excl
 		if customFields.TotalCost != "" {
 			deal.TotalCost = dealMap[customFields.TotalCost]
 		}
+
+		// Map standard deal fields
+		deal.Opportunity = dealMap["OPPORTUNITY"]
+
 		if customFields.PaymentReceived != "" {
 			deal.PaymentReceived = dealMap[customFields.PaymentReceived]
 		}
