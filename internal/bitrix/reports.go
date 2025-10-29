@@ -8,12 +8,14 @@ import (
 )
 
 // ListDealsWithCustomFields retrieves deals with custom fields, excluding specified statuses
-func (c *Client) ListDealsWithCustomFields(customFields ReportCustomFields, excludedStatuses []string) ([]DealReportRow, error) {
+// categoryIDs - optional list of category IDs to filter by (empty = all categories)
+func (c *Client) ListDealsWithCustomFields(customFields ReportCustomFields, excludedStatuses []string, categoryIDs []string) ([]DealReportRow, error) {
 	// Build select fields list - standard fields + custom fields
 	selectFields := []string{
 		"ID",
 		"TITLE",
 		"DATE_CREATE",
+		"CATEGORY_ID",
 		"OPPORTUNITY",
 	}
 
@@ -48,6 +50,17 @@ func (c *Client) ListDealsWithCustomFields(customFields ReportCustomFields, excl
 		filter["!@STAGE_ID"] = statusesInterface
 	}
 
+	// Filter by category IDs if specified
+	// In Bitrix24, to filter by multiple values, we use "@CATEGORY_ID" with array
+	if len(categoryIDs) > 0 {
+		// Convert to interface slice for the filter
+		categoriesInterface := make([]interface{}, len(categoryIDs))
+		for i, categoryID := range categoryIDs {
+			categoriesInterface[i] = categoryID
+		}
+		filter["@CATEGORY_ID"] = categoriesInterface
+	}
+
 	params := map[string]interface{}{
 		"select": selectFields,
 		"filter": filter,
@@ -72,6 +85,7 @@ func (c *Client) ListDealsWithCustomFields(customFields ReportCustomFields, excl
 			ID:         getStringValue(dealMap, "ID"),
 			Title:      getStringValue(dealMap, "TITLE"),
 			DateCreate: getStringValue(dealMap, "DATE_CREATE"),
+			CategoryID: getStringValue(dealMap, "CATEGORY_ID"),
 		}
 
 		// Map custom fields
@@ -156,4 +170,33 @@ func getStringValue(m map[string]interface{}, key string) string {
 		return fmt.Sprintf("%v", val)
 	}
 	return ""
+}
+
+// ListDealCategories retrieves deal categories (funnels) from Bitrix24
+// Returns a map of category ID to category name for quick lookups
+func (c *Client) ListDealCategories() (map[string]string, error) {
+	params := map[string]interface{}{
+		"entityTypeId": 2, // 2 = Deals (CRM_DEAL)
+	}
+
+	resp, err := c.makeRequest("crm.category.list", params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list categories: %v", err)
+	}
+
+	// Parse response
+	var result struct {
+		Result []DealCategory `json:"result"`
+	}
+	if err := c.parseResponse(resp, &result); err != nil {
+		return nil, fmt.Errorf("failed to parse categories response: %v", err)
+	}
+
+	// Convert to map: ID -> Name
+	categoryMap := make(map[string]string)
+	for _, category := range result.Result {
+		categoryMap[fmt.Sprintf("%d", category.ID)] = category.Name
+	}
+
+	return categoryMap, nil
 }

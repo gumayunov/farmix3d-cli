@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"farmix-cli/internal/bitrix"
 	"farmix-cli/internal/formatter"
@@ -12,7 +13,8 @@ import (
 )
 
 var (
-	reportFormat string
+	reportFormat    string
+	reportCategoryID string
 )
 
 var crmReportCmd = &cobra.Command{
@@ -90,13 +92,31 @@ func runCRMReport() error {
 		excludedStatuses = []string{"WON", "LOST"}
 	}
 
-	fmt.Println("Получение списка сделок из Bitrix24...")
-
 	// Create Bitrix24 client
 	client := bitrix.NewClient(webhookURL)
 
+	// Load deal categories (funnels) from Bitrix24
+	fmt.Println("Загрузка списка воронок...")
+	categoryMap, err := client.ListDealCategories()
+	if err != nil {
+		return fmt.Errorf("не удалось загрузить список воронок: %v", err)
+	}
+
+	// Parse category IDs from flag (comma-separated)
+	var categoryIDs []string
+	if reportCategoryID != "" {
+		categoryIDs = strings.Split(reportCategoryID, ",")
+		// Trim spaces from each ID
+		for i := range categoryIDs {
+			categoryIDs[i] = strings.TrimSpace(categoryIDs[i])
+		}
+		fmt.Printf("Фильтрация по воронкам: %v\n", categoryIDs)
+	}
+
+	fmt.Println("Получение списка сделок из Bitrix24...")
+
 	// Get deals with custom fields
-	deals, err := client.ListDealsWithCustomFields(customFields, excludedStatuses)
+	deals, err := client.ListDealsWithCustomFields(customFields, excludedStatuses, categoryIDs)
 	if err != nil {
 		return fmt.Errorf("не удалось получить список сделок: %v", err)
 	}
@@ -111,11 +131,11 @@ func runCRMReport() error {
 	// Format and output report
 	switch reportFormat {
 	case "csv":
-		if err := formatter.FormatReportAsCSV(deals, os.Stdout); err != nil {
+		if err := formatter.FormatReportAsCSV(deals, categoryMap, os.Stdout); err != nil {
 			return fmt.Errorf("не удалось сформировать CSV отчет: %v", err)
 		}
 	case "text":
-		if err := formatter.FormatReportAsTable(deals, os.Stdout); err != nil {
+		if err := formatter.FormatReportAsTable(deals, categoryMap, os.Stdout); err != nil {
 			return fmt.Errorf("не удалось сформировать текстовый отчет: %v", err)
 		}
 	default:
@@ -127,6 +147,7 @@ func runCRMReport() error {
 
 func init() {
 	crmReportCmd.Flags().StringVarP(&reportFormat, "format", "f", "text", "Формат вывода (text, csv)")
+	crmReportCmd.Flags().StringVarP(&reportCategoryID, "category-id", "c", "", "ID воронки (или несколько через запятую, например: 1,3,5)")
 
 	rootCmd.AddCommand(crmReportCmd)
 }

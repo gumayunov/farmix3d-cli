@@ -11,7 +11,8 @@ import (
 )
 
 // FormatReportAsTable formats deals report as ASCII table with aligned columns
-func FormatReportAsTable(deals []bitrix.DealReportRow, writer io.Writer) error {
+// categoryMap maps category ID to category name
+func FormatReportAsTable(deals []bitrix.DealReportRow, categoryMap map[string]string, writer io.Writer) error {
 	if len(deals) == 0 {
 		fmt.Fprintf(writer, "Нет сделок для отображения\n")
 		return nil
@@ -20,6 +21,7 @@ func FormatReportAsTable(deals []bitrix.DealReportRow, writer io.Writer) error {
 	// Define column headers
 	headers := []string{
 		"ID",
+		"Воронка",
 		"Название",
 		"Дата создания",
 		"М/ч (₽)",
@@ -39,8 +41,15 @@ func FormatReportAsTable(deals []bitrix.DealReportRow, writer io.Writer) error {
 			date = date[:10]
 		}
 
+		// Get category name from map, fallback to ID if not found
+		categoryName := deal.CategoryID
+		if name, ok := categoryMap[deal.CategoryID]; ok {
+			categoryName = name
+		}
+
 		rows[i] = []string{
 			deal.ID,
+			categoryName,
 			deal.Title,
 			date,
 			bitrix.ParseCustomFieldValue(deal.MachineCost),
@@ -91,13 +100,15 @@ func FormatReportAsTable(deals []bitrix.DealReportRow, writer io.Writer) error {
 }
 
 // FormatReportAsCSV formats deals report as CSV
-func FormatReportAsCSV(deals []bitrix.DealReportRow, writer io.Writer) error {
+// categoryMap maps category ID to category name
+func FormatReportAsCSV(deals []bitrix.DealReportRow, categoryMap map[string]string, writer io.Writer) error {
 	csvWriter := csv.NewWriter(writer)
 	defer csvWriter.Flush()
 
 	// Write headers
 	headers := []string{
 		"ID",
+		"Воронка",
 		"Название сделки",
 		"Дата создания",
 		"Рассчетная стоимость м/ч",
@@ -119,8 +130,15 @@ func FormatReportAsCSV(deals []bitrix.DealReportRow, writer io.Writer) error {
 			date = date[:10]
 		}
 
+		// Get category name from map, fallback to ID if not found
+		categoryName := deal.CategoryID
+		if name, ok := categoryMap[deal.CategoryID]; ok {
+			categoryName = name
+		}
+
 		record := []string{
 			deal.ID,
+			categoryName,
 			deal.Title,
 			date,
 			bitrix.ParseCustomFieldValue(deal.MachineCost),

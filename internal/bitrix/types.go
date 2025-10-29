@@ -235,6 +235,7 @@ type DealReportRow struct {
 	ID              string      `json:"ID"`
 	Title           string      `json:"TITLE"`
 	DateCreate      string      `json:"DATE_CREATE"`
+	CategoryID      string      `json:"CATEGORY_ID"`      // Deal category/funnel ID
 	MachineCost     interface{} `json:"machine_cost"`     // Custom field - can be string or number
 	HumanCost       interface{} `json:"human_cost"`       // Custom field - can be string or number
 	MaterialCost    interface{} `json:"material_cost"`    // Custom field - can be string or number
@@ -256,4 +257,20 @@ type ReportCustomFields struct {
 	MaterialCost    string `json:"material_cost"`
 	TotalCost       string `json:"total_cost"`
 	PaymentReceived string `json:"payment_received"`
+}
+
+// DealCategory represents a deal category (funnel) in Bitrix24
+type DealCategory struct {
+	ID           int    `json:"id"`
+	Name         string `json:"name"`
+	Sort         int    `json:"sort"`
+	EntityTypeID int    `json:"entityTypeId"` // 2 for deals
+}
+
+// ListCategoriesResponse represents the response from crm.category.list
+type ListCategoriesResponse struct {
+	Result struct {
+		Categories []DealCategory `json:"categories"`
+	} `json:"result"`
+	Total int `json:"total"`
 }
